@@ -6,82 +6,42 @@ var log = function(value) {
     return value
 }
 
-var Host = function(data) {
-    this.created = m.prop(data.created);
-    this.domain = m.prop(data.domain);
-    this.enabled = m.prop(data.enabled);
-    this.host = m.prop(data.host);
-    this.hostname = m.prop(data.hostname);
-    this.updated = m.prop(data.updated);
-    this.ip = m.prop(data.ip);
+var Host = function(data = Array) {
+    this.id = m.prop(data["@id"]) || m.prop("");
+    this.created = m.prop(data.created) || m.prop("");
+    this.domain = m.prop(data.domain) || m.prop("");
+    this.enabled = m.prop(data.enabled) || m.prop("");
+    this.host = m.prop(data.host) || m.prop("");
+    this.hostname = m.prop(data.hostname) || m.prop("");
+    this.updated = m.prop(data.updated) || m.prop("");
+    this.ip = m.prop(data.ip) || m.prop("");
+    this.groups = m.prop(data.groups) || m.prop(Array);
+    this.variables = m.prop(data.variables) || m.prop(Array);
+    //console.log(this.ip());
 };
 
-Host.list = m.prop([]);
-Host.api = {
-    first: false,
-    next: false,
-    previous: false,
-    last: false
-}
+Host.update = function(host) {
+    console.log(host.id());
 
-Host.getList = function(direction=false) {
     var base = "http://127.0.0.1:8000";
-    var end = "/hosts";
-
-    url = base+end;
-    if (direction == "next") {
-        if (!Host.api.next) {
-            return;
-        }
-        url = base+Host.api.next;
-    }
-    if (direction == "previous") {
-        if (!Host.api.previous) {
-            return;
-        }
-        url = base+Host.api.previous;
-    }
-    if (direction == "last") {
-        url = base+Host.api.last;
-    }
-    console.log(url);
-
+    url = base + host.id();
     m.request({
-        method: "GET",
+        method: "PUT",
         url: url,
-        unwrapSuccess: function(response) {
-            Host.api.next = response["hydra:nextPage"] || false;
-            Host.api.previous = response["hydra:previousPage"] || false;
-            console.log(Host.api.next);
-            console.log(Host.api.previous);
-            Host.api.last = response["hydra:lastPage"];
-            Host.api.first = response["hydra:firstPage"];
-            console.log(response);
-            return response["hydra:member"];
-        },
-        type: Host
+        data: host,
     }).then(log)
-    .then(Host.list)
-    .then(m.redraw());
 }
+
+Host.host = new Host();
 
 Host.vm = (function() {
     var vm = {}
     vm.init = function() {
-        Host.getList();
-        vm.list = Host.list;
+        vm.host = Host.host;
     }
-    vm.next = function() {
-        Host.getList("next");
-    }
-    vm.previous = function() {
-        Host.getList("previous");
-    }
-    vm.last = function() {
-        Host.getList("last");
-    }
-    vm.first = function() {
-        Host.getList("first");
+
+    vm.update = function(data) {
+        Hosts.update(data);
     }
     return vm
 }())
@@ -91,37 +51,156 @@ Host.controller = function() {
 }
 
 Host.view = function() {
-    return m("html", [
-        m("body", [
-            m("button", {onclick: Host.vm.first}, "First"),
-            m("button", {onclick: Host.vm.previous, disabled: !Host.api.previous}, "Previous"),
-            m("button", {onclick: Host.vm.next, disabled: !Host.api.next}, "Next"),
-            m("button", {onclick: Host.vm.last}, "Last"),
+    return m("form", [
+            //Host.vm.host().map(function(property, index) {
+            //    m("div", [
+            //        m("input", {}, value:property.value),
+            //    ]);
+            //}),
+            //m("button", {onclick: Host.vm.save}, "Save"),
+    ]);
+};
+
+
+var Hosts = function(){};
+Hosts.list = m.prop([]);
+Hosts.api = {
+    first: false,
+    next: false,
+    previous: false,
+    last: false
+}
+
+Hosts.storage = mx.storage('Hosts', mx.LOCAL_STORAGE);
+Hosts.store = function(value) {
+    if (value instanceof Array) {
+        console.log('Writing to localStorage');
+        Hosts.storage.set('hostsList', value);
+        return value;
+    }
+    if (!value && localStorage.getItem('hostsList') !== null) {
+        console.log('Fetching from localStorage');
+        Hosts.storage.get('hostsList').forEach(function(element){
+            Hosts.list().push(new Host(element));
+        });
+
+        return true;
+    }
+}
+
+
+Hosts.getList = function(direction=false) {
+    var base = "http://127.0.0.1:8000";
+    var end = "/hosts";
+
+    if (Hosts.store()) {
+        m.redraw();
+        return;
+    }
+
+    url = base+end;
+    if (direction == "next") {
+        if (!Hosts.api.next) {
+            return;
+        }
+        url = base+Hosts.api.next;
+    }
+    if (direction == "previous") {
+        if (!Hosts.api.previous) {
+            return;
+        }
+        url = base+Hosts.api.previous;
+    }
+    if (direction == "last") {
+        url = base+Hosts.api.last;
+    }
+    console.log(url);
+
+    m.request({
+        method: "GET",
+        url: url,
+        background: true,
+        initialValue: [],
+        unwrapSuccess: function(response) {
+            Hosts.api.next = response["hydra:nextPage"] || false;
+            Hosts.api.previous = response["hydra:previousPage"] || false;
+            Hosts.api.last = response["hydra:lastPage"];
+            Hosts.api.first = response["hydra:firstPage"];
+            return response["hydra:member"];
+        },
+        type: Host
+    }).then(log)
+    .then(Hosts.store)
+    .then(Hosts.list)
+    .then(m.redraw);
+}
+
+Hosts.vm = (function() {
+    var vm = {}
+    vm.init = function() {
+        Hosts.getList();
+        vm.list = Hosts.list;
+    }
+    vm.next = function() {
+        Hosts.getList("next");
+    }
+    vm.previous = function() {
+        Hosts.getList("previous");
+    }
+    vm.last = function() {
+        Hosts.getList("last");
+    }
+    vm.first = function() {
+        Hosts.getList("first");
+    }
+
+    vm.update = function(data) {
+        Hosts.update(data);
+    }
+    return vm
+}())
+
+Hosts.controller = function() {
+    Hosts.vm.init();
+}
+
+Hosts.view = function() {
+    return m("div", [
+            m("button", {onclick: Hosts.vm.first}, "First"),
+            m("button", {onclick: Hosts.vm.previous, disabled: !Hosts.api.previous}, "Previous"),
+            m("button", {onclick: Hosts.vm.next, disabled: !Hosts.api.next}, "Next"),
+            m("button", {onclick: Hosts.vm.last}, "Last"),
             m("table", [
                 m("thead", [
                     m("tr", [
-                        m("td", {}, 'IP'),
-                        m("td", {}, 'Domain'),
-                        m("td", {}, 'Host'),
-                        m("td", {}, 'Hostname'),
-                        m("td", {}, 'Created'),
-                        m("td", {}, 'Updated'),
+                        m("th", {}, 'IP'),
+                        m("th", {}, 'Domain'),
+                        m("th", {}, 'Host'),
+                        m("th", {}, 'Hostname'),
+                        m("th", {}, 'Created'),
+                        m("th", {}, 'Updated'),
                     ])
                 ]),
-                Host.vm.list().map(function(host, index, array) {
+                Hosts.vm.list().map(function(host, index, array) {
                     return m("tr", [
                         m("td", {}, host.ip()),
                         m("td", {}, host.domain()),
-                        m("td", {}, host.host()),
+                        m("td", [m("input", {onchange: m.withAttr("value", function(value){
+                            host.host(value);
+                            Hosts.vm.update(host);
+                        }), value: host.host()})]),
                         m("td", {}, host.hostname()),
                         m("td", {}, host.created()),
                         m("td", {}, host.updated()),
                     ])
                 })
             ])
-        ])
     ]);
 };
 
 //initialize the application
-m.mount(document, {controller: Host.controller, view: Host.view});
+m.mount(document.body, {controller: Hosts.controller, view: Hosts.view});
+//m.mount(document.body, [
+//    {controller: Hosts.controller, view: Hosts.view},
+////    {controller: Host.controller, view: Host.view}
+//]);
