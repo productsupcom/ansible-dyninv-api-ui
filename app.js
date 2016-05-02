@@ -68,15 +68,23 @@ Hosts.api = {
     first: false,
     next: false,
     previous: false,
-    last: false
+    last: false,
+    total: undefined,
+    initial: true
 }
 
 Hosts.storage = mx.storage('Hosts', mx.LOCAL_STORAGE);
 Hosts.store = function(value) {
     if (value instanceof Array) {
-        console.log('Writing to localStorage');
-        Hosts.storage.set('hostsList', value);
-        return value;
+        console.log(Hosts.list(), value);
+        console.log('Length',Hosts.list().length);
+        Hosts.list(Hosts.list().concat(value));
+        console.log(Hosts.list(), value);
+        //console.log(local);
+        //console.log(local);
+        //console.log(Hosts.list());
+        Hosts.storage.set('hostsList', Hosts.list());
+        return Hosts.list();
     }
     if (!value && localStorage.getItem('hostsList') !== null) {
         console.log('Fetching from localStorage');
@@ -88,14 +96,19 @@ Hosts.store = function(value) {
     }
 }
 
-
 Hosts.getList = function(direction=false) {
     var base = "http://127.0.0.1:8000";
     var end = "/hosts";
 
-    if (Hosts.store()) {
-        m.redraw();
+    if (Hosts.api.total !== undefined && Hosts.list().length == Hosts.api.total) {
         return;
+    }
+
+    if (!direction) {
+        if (Hosts.store()) {
+            m.redraw();
+            return;
+        }
     }
 
     url = base+end;
@@ -116,23 +129,31 @@ Hosts.getList = function(direction=false) {
     }
     console.log(url);
 
+    console.log(Hosts.api.total);
+    console.log(Hosts.list().length);
     m.request({
         method: "GET",
         url: url,
         background: true,
         initialValue: [],
         unwrapSuccess: function(response) {
+            Hosts.api.initial = false;
             Hosts.api.next = response["hydra:nextPage"] || false;
             Hosts.api.previous = response["hydra:previousPage"] || false;
             Hosts.api.last = response["hydra:lastPage"];
             Hosts.api.first = response["hydra:firstPage"];
+            Hosts.api.total = response["hydra:totalItems"];
+            console.log(Hosts.api.total);
+            console.log(Hosts.list().length);
             return response["hydra:member"];
         },
         type: Host
     }).then(log)
     .then(Hosts.store)
-    .then(Hosts.list)
-    .then(m.redraw);
+    .then(m.redraw)
+    .then(function(data){
+        Hosts.getList('next');
+    });
 }
 
 Hosts.vm = (function() {
@@ -166,10 +187,10 @@ Hosts.controller = function() {
 
 Hosts.view = function() {
     return m("div", [
-            m("button", {onclick: Hosts.vm.first}, "First"),
-            m("button", {onclick: Hosts.vm.previous, disabled: !Hosts.api.previous}, "Previous"),
-            m("button", {onclick: Hosts.vm.next, disabled: !Hosts.api.next}, "Next"),
-            m("button", {onclick: Hosts.vm.last}, "Last"),
+            //m("button", {onclick: Hosts.vm.first}, "First"),
+            //m("button", {onclick: Hosts.vm.previous, disabled: !Hosts.api.previous}, "Previous"),
+            //m("button", {onclick: Hosts.vm.next, disabled: !Hosts.api.next}, "Next"),
+            //m("button", {onclick: Hosts.vm.last}, "Last"),
             m("table", [
                 m("thead", [
                     m("tr", [
