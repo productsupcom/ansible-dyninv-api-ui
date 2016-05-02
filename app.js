@@ -6,6 +6,21 @@ var log = function(value) {
     return value
 }
 
+function sorts(list) {
+    return {
+        onclick: function(e) {
+            var prop = e.target.getAttribute("data-sort-by")
+            if (prop) {
+                var first = list[0]
+                list.sort(function(a, b) {
+                    return a[prop]() > b[prop]() ? 1 : a[prop]() < b[prop]() ? -1 : 0
+                })
+                if (first === list[0]) list.reverse()
+            }
+        }
+    }
+}
+
 var Host = function(data = Array) {
     this.id = m.prop(data["@id"]) || m.prop("");
     this.created = m.prop(data.created) || m.prop("");
@@ -191,15 +206,15 @@ Hosts.view = function() {
             //m("button", {onclick: Hosts.vm.previous, disabled: !Hosts.api.previous}, "Previous"),
             //m("button", {onclick: Hosts.vm.next, disabled: !Hosts.api.next}, "Next"),
             //m("button", {onclick: Hosts.vm.last}, "Last"),
-            m("table", [
+            m("table", sorts(Hosts.list()), [
                 m("thead", [
                     m("tr", [
-                        m("th", {}, 'IP'),
-                        m("th", {}, 'Domain'),
-                        m("th", {}, 'Host'),
-                        m("th", {}, 'Hostname'),
-                        m("th", {}, 'Created'),
-                        m("th", {}, 'Updated'),
+                        m("th[data-sort-by=ip]", {}, 'IP'),
+                        m("th[data-sort-by=domain]", {}, 'Domain'),
+                        m("th[data-sort-by=host]", {}, 'Host'),
+                        m("th[data-sort-by=hostname]", {}, 'Hostname'),
+                        m("th[data-sort-by=created]", {}, 'Created'),
+                        m("th[data-sort-by=updated]", {}, 'Updated'),
                     ])
                 ]),
                 Hosts.vm.list().map(function(host, index, array) {
