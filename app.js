@@ -32,11 +32,29 @@ var Host = function(data = Array) {
     this.ip = m.prop(data.ip) || m.prop("");
     this.groups = m.prop(data.groups) || m.prop(Array);
     this.variables = m.prop(data.variables) || m.prop(Array);
-    //console.log(this.ip());
+};
+
+Host.prototype.toJSON = function() {
+    return {
+        "@id": this.id(),
+        "created": this.created(),
+        "domain": this.domain(),
+        "enabled": this.enabled(),
+        "host": this.host(),
+        "hostname": this.hostname(),
+        "updated": this.updated(),
+        "ip": this.ip(),
+        "groups": this.groups(),
+        "variables": this.variables()
+    };
 };
 
 Host.update = function(host) {
-    console.log(host.id());
+    if (!(host instanceof Host)) {
+        console.log('Argument needs to be of type Host.', host);
+        return;
+    }
+    console.log(host);
 
     var base = "http://127.0.0.1:8000";
     url = base + host.id();
@@ -55,8 +73,16 @@ Host.vm = (function() {
         vm.host = Host.host;
     }
 
+    vm.select = function(host) {
+        console.log(host.ip(), vm.host.ip());
+        vm.host = host;
+        console.log(host.ip(), vm.host.ip());
+        m.redraw();
+    }
+
     vm.update = function(data) {
-        Hosts.update(data);
+        console.log(data);
+        Host.update(data);
     }
     return vm
 }())
@@ -66,13 +92,18 @@ Host.controller = function() {
 }
 
 Host.view = function() {
-    return m("form", [
-            //Host.vm.host().map(function(property, index) {
-            //    m("div", [
-            //        m("input", {}, value:property.value),
-            //    ]);
-            //}),
-            //m("button", {onclick: Host.vm.save}, "Save"),
+    return m("div", [
+            Object.keys(Host.vm.host).map(function(property, index) {
+                console.log(property, Host.vm.host[property]());
+                return m("div[class=form-group]", [
+                    m("label[for="+property+"]", property),
+                    m("input[id="+property+"],[class=form-control]", {onchange: m.withAttr("value", Host.vm.host[property]), value: Host.vm.host[property]()}),
+                ]);
+            }),
+            m("button", {onclick:  function(value){
+                            //Host.vm.host = host;
+                            Host.vm.update(Host.vm.host);
+                        }}, "Save"),
     ]);
 };
 
@@ -167,6 +198,7 @@ Hosts.getList = function(direction=false) {
     .then(Hosts.store)
     .then(m.redraw)
     .then(function(data){
+        // while debugging other stuff disable this
         Hosts.getList('next');
     });
 }
@@ -191,7 +223,7 @@ Hosts.vm = (function() {
     }
 
     vm.update = function(data) {
-        Hosts.update(data);
+        Host.vm.update(data);
     }
     return vm
 }())
@@ -202,10 +234,6 @@ Hosts.controller = function() {
 
 Hosts.view = function() {
     return m("div", [
-            //m("button", {onclick: Hosts.vm.first}, "First"),
-            //m("button", {onclick: Hosts.vm.previous, disabled: !Hosts.api.previous}, "Previous"),
-            //m("button", {onclick: Hosts.vm.next, disabled: !Hosts.api.next}, "Next"),
-            //m("button", {onclick: Hosts.vm.last}, "Last"),
             m("table", sorts(Hosts.list()), [
                 m("thead", [
                     m("tr", [
@@ -218,7 +246,11 @@ Hosts.view = function() {
                     ])
                 ]),
                 Hosts.vm.list().map(function(host, index, array) {
-                    return m("tr", [
+                    return m("tr[data-id="+host.ip()+"]", {
+                            onclick: m.withAttr("data-id", function(value){
+                                Host.vm.select(host);
+                            })
+                        }, [
                         m("td", {}, host.ip()),
                         m("td", {}, host.domain()),
                         m("td", [m("input", {onchange: m.withAttr("value", function(value){
@@ -234,8 +266,27 @@ Hosts.view = function() {
     ]);
 };
 
+var ansible = {};
+
+ansible.controller = function() {
+    var ctrl = this;
+
+    ctrl.list = new Hosts.controller();
+    ctrl.host = new Host.controller();
+}
+
+ansible.view = function(ctrl) {
+    return m(".row", [
+        m(".col-md-3", [ Host.vm.host.ip() ? Host.view(ctrl.host) : '' ]),
+        m(".col-md-9", [
+            Hosts.view(ctrl.list)
+        ])
+    ]);
+}
+
+m.module(document.body, ansible);
 //initialize the application
-m.mount(document.body, {controller: Hosts.controller, view: Hosts.view});
+//m.mount(document.body, {controller: Hosts.controller, view: Hosts.view});
 //m.mount(document.body, [
 //    {controller: Hosts.controller, view: Hosts.view},
 ////    {controller: Host.controller, view: Host.view}
