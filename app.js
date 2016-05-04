@@ -13,6 +13,9 @@ function sorts(list) {
             if (prop) {
                 var first = list[0]
                 list.sort(function(a, b) {
+                    if (a instanceof Host || b instanceof Host) {
+                        return a.d[prop]() > b.d[prop]() ? 1 : a.d[prop]() < b.d[prop]() ? -1 : 0
+                    }
                     return a[prop]() > b[prop]() ? 1 : a[prop]() < b[prop]() ? -1 : 0
                 })
                 if (first === list[0]) list.reverse()
@@ -21,32 +24,92 @@ function sorts(list) {
     }
 }
 
-var Host = function(data = Array) {
-    this.id = m.prop(data["@id"]) || m.prop("");
-    this.created = m.prop(data.created) || m.prop("");
-    this.domain = m.prop(data.domain) || m.prop("");
-    this.enabled = m.prop(data.enabled) || m.prop("");
-    this.host = m.prop(data.host) || m.prop("");
-    this.hostname = m.prop(data.hostname) || m.prop("");
-    this.updated = m.prop(data.updated) || m.prop("");
-    this.ip = m.prop(data.ip) || m.prop("");
-    this.groups = m.prop(data.groups) || m.prop(Array);
-    this.variables = m.prop(data.variables) || m.prop(Array);
+var Group = function(data) {
+    this.d = {};
+    var d = this.d;
+
+    d.id = data ? m.prop(data["@id"]) : m.prop("");
+    d.name = data ? m.prop(data.name) : m.prop("");
+    d.enabled = data ? m.prop(data.enabled) : m.prop("");
+    d.variables = data ? m.prop(data.variables) : m.prop([]);
+    d.hosts = data ? m.prop(data.hosts) : m.prop([]);
+}
+
+Group.prototype.toJSON = function() {
+    var d = this.d;
+    var obj = {
+        "@id": d.id(),
+        "name": d.name(),
+        "enabled": d.enabled(),
+        "variables": d.variables(),
+        "hosts": d.hosts()
+    };
+    console.log(obj);
+
+    Object.keys(obj).map(function(property, index) {
+        if (obj[property] === undefined || obj[property] == "") {
+            delete obj[property];
+        }
+    });
+
+    console.log(obj);
+
+    return obj;
+};
+
+var Host = function(data) {
+    this.d = {};
+    var d = this.d;
+    d.id = data ? m.prop(data["@id"]) : m.prop("");
+    d.created = data ? m.prop(data.created) : m.prop("");
+    d.domain = data ? m.prop(data.domain) : m.prop("");
+    d.enabled = data ? m.prop(data.enabled) : m.prop("");
+    d.host = data ? m.prop(data.host) : m.prop("");
+    d.hostname = data ? m.prop(data.hostname) : m.prop("");
+    d.updated = data ? m.prop(data.updated) : m.prop("");
+    d.ip = data ? m.prop(data.ip) : m.prop("");
+    d.groups = data ? m.prop(data.groups) : m.prop([]);
+    d.variables = data ? m.prop(data.variables) : m.prop([]);
+
+    this.editable = [
+        'domain',
+        'enabled',
+        'host',
+        'hostname',
+        'ip',
+        'groups',
+        'variables'
+    ];
+    this.state = {
+        visible: m.prop(true)
+    };
 };
 
 Host.prototype.toJSON = function() {
-    return {
-        "@id": this.id(),
-        "created": this.created(),
-        "domain": this.domain(),
-        "enabled": this.enabled(),
-        "host": this.host(),
-        "hostname": this.hostname(),
-        "updated": this.updated(),
-        "ip": this.ip(),
-        "groups": this.groups(),
-        "variables": this.variables()
+    var d = this.d;
+    var obj = {
+        "@id": d.id(),
+        "created": d.created(),
+        "domain": d.domain(),
+        "enabled": d.enabled(),
+        "host": d.host(),
+        "hostname": d.hostname(),
+        "updated": d.updated(),
+        "ip": d.ip(),
+        "groups": d.groups(),
+        "variables": d.variables()
     };
+    console.log(obj);
+
+    Object.keys(obj).map(function(property, index) {
+        if (obj[property] === undefined || obj[property] == "") {
+            delete obj[property];
+        }
+    });
+
+    console.log(obj);
+
+    return obj;
 };
 
 Host.update = function(host) {
@@ -57,12 +120,33 @@ Host.update = function(host) {
     console.log(host);
 
     var base = "http://127.0.0.1:8000";
-    url = base + host.id();
+    url = base + host.d.id();
     m.request({
         method: "PUT",
         url: url,
         data: host,
+        type: Host
     }).then(log)
+    .then(Hosts.replace);
+}
+
+Host.post = function(host) {
+    if (!(host instanceof Host)) {
+        console.log('Argument needs to be of type Host.', host);
+        return;
+    }
+    console.log(host);
+
+    var base = "http://127.0.0.1:8000";
+    var endpoint = "/hosts"
+    url = base + endpoint;
+    m.request({
+        method: "POST",
+        url: url,
+        data: host,
+        type: Host
+    }).then(log)
+    .then(Hosts.add);
 }
 
 Host.host = new Host();
@@ -74,16 +158,23 @@ Host.vm = (function() {
     }
 
     vm.select = function(host) {
-        console.log(host.ip(), vm.host.ip());
         vm.host = host;
-        console.log(host.ip(), vm.host.ip());
+        m.redraw();
+    }
+
+    vm.create = function() {
+        vm.host = new Host()
         m.redraw();
     }
 
     vm.update = function(data) {
-        console.log(data);
         Host.update(data);
     }
+
+    vm.post = function(data) {
+        Host.post(data);
+    }
+
     return vm
 }())
 
@@ -92,18 +183,28 @@ Host.controller = function() {
 }
 
 Host.view = function() {
-    return m("div", [
-            Object.keys(Host.vm.host).map(function(property, index) {
-                console.log(property, Host.vm.host[property]());
-                return m("div[class=form-group]", [
-                    m("label[for="+property+"]", property),
-                    m("input[id="+property+"],[class=form-control]", {onchange: m.withAttr("value", Host.vm.host[property]), value: Host.vm.host[property]()}),
-                ]);
+    return m("div[class=panel panel-default]", [
+            m("div[class=panel-heading]", [
+                m("h3[class=panel-title", "Edit Host"),
+            ]),
+            m("div[class=panel-body]", [
+            Object.keys(Host.vm.host.d).map(function(property, index) {
+                if (Host.vm.host.editable.indexOf(property) >= 0) {
+                    return m("div[class=form-group]", [
+                        m("label[for="+property+"]", property),
+                        m("input[id="+property+"],[class=form-control]", {onchange: m.withAttr("value", Host.vm.host.d[property]), value: Host.vm.host.d[property]()}),
+                    ]);
+                }
             }),
-            m("button", {onclick:  function(value){
+            m("button[class=btn btn-default]", {onclick:  function(value){
                             //Host.vm.host = host;
-                            Host.vm.update(Host.vm.host);
+                            if (Host.vm.host.d.id()) {
+                                Host.vm.update(Host.vm.host);
+                            } else {
+                                Host.vm.post(Host.vm.host);
+                            }
                         }}, "Save"),
+        ]),
     ]);
 };
 
@@ -119,16 +220,37 @@ Hosts.api = {
     initial: true
 }
 
+Hosts.replace = function(host) {
+    console.log('replacing', host);
+    Hosts.list(Hosts.list().filter(function (el) {
+        return el.d.id() !== host.d.id();
+    }));
+    Hosts.list().push(host);
+    Hosts.store([], true);
+    m.redraw();
+
+    return host;
+}
+
+Hosts.add = function(host) {
+    var found = Hosts.list().some(function (el) {
+        return el.d.id() == host.d.id();
+    });
+    if (!found) {
+        Hosts.list().push(host);
+        Hosts.store([], true);
+    }
+    m.redraw();
+
+    return host;
+}
+
 Hosts.storage = mx.storage('Hosts', mx.LOCAL_STORAGE);
-Hosts.store = function(value) {
+Hosts.store = function(value, add = false) {
     if (value instanceof Array) {
-        console.log(Hosts.list(), value);
-        console.log('Length',Hosts.list().length);
-        Hosts.list(Hosts.list().concat(value));
-        console.log(Hosts.list(), value);
-        //console.log(local);
-        //console.log(local);
-        //console.log(Hosts.list());
+        if (!add) {
+            Hosts.list(Hosts.list().concat(value));
+        }
         Hosts.storage.set('hostsList', Hosts.list());
         return Hosts.list();
     }
@@ -222,6 +344,14 @@ Hosts.vm = (function() {
         Hosts.getList("first");
     }
 
+    vm.createHost = function() {
+        Host.vm.create();
+    }
+
+    vm.select = function(host) {
+        Host.vm.select(host);
+    }
+
     vm.update = function(data) {
         Host.vm.update(data);
     }
@@ -233,8 +363,17 @@ Hosts.controller = function() {
 }
 
 Hosts.view = function() {
-    return m("div", [
-            m("table", sorts(Hosts.list()), [
+    return m("div[class=panel panel-default]", [
+            m("div[class=panel-heading]", [
+                m("h3[class=panel-title", "Available Hosts"),
+            ]),
+            m("div[class=panel-body]", [
+                m("button[class=btn btn-default]", {onclick: m.withAttr("data-id", function(value){
+                                Hosts.vm.createHost();
+                            })}, "New Host"),
+            ]),
+
+            m("table[class=table table-condensed table-striped table-hover]", sorts(Hosts.list()), [
                 m("thead", [
                     m("tr", [
                         m("th[data-sort-by=ip]", {}, 'IP'),
@@ -245,24 +384,28 @@ Hosts.view = function() {
                         m("th[data-sort-by=updated]", {}, 'Updated'),
                     ])
                 ]),
+                m("tbody", [
                 Hosts.vm.list().map(function(host, index, array) {
-                    return m("tr[data-id="+host.ip()+"]", {
+                    return m("tr[data-id="+host.d.ip()+"]", {
+                            class: (host == Host.vm.host) ? 'success' : '',
                             onclick: m.withAttr("data-id", function(value){
-                                Host.vm.select(host);
+                                Hosts.vm.select(host);
                             })
                         }, [
-                        m("td", {}, host.ip()),
-                        m("td", {}, host.domain()),
-                        m("td", [m("input", {onchange: m.withAttr("value", function(value){
-                            host.host(value);
-                            Hosts.vm.update(host);
-                        }), value: host.host()})]),
-                        m("td", {}, host.hostname()),
-                        m("td", {}, host.created()),
-                        m("td", {}, host.updated()),
+                        m("td", {}, host.d.ip()),
+                        m("td", {}, host.d.domain()),
+                        m("td", {}, host.d.host()),
+                        //m("td", [m("input", {onchange: m.withAttr("value", function(value){
+                        //    host.host(value);
+                        //    Hosts.vm.update(host);
+                        //}), value: host.host()})]),
+                        m("td", {}, host.d.hostname()),
+                        m("td", {}, host.d.created()),
+                        m("td", {}, host.d.updated()),
                     ])
                 })
-            ])
+          ])
+        ])
     ]);
 };
 
@@ -276,10 +419,13 @@ ansible.controller = function() {
 }
 
 ansible.view = function(ctrl) {
-    return m(".row", [
-        m(".col-md-3", [ Host.vm.host.ip() ? Host.view(ctrl.host) : '' ]),
+    return m("div[class=container-fluid]", [
+        m(".row-fluid", [
+        //m(".col-md-3", [ Host.vm.host.d.ip() ? Host.view(ctrl.host) : '' ]),
+        m(".col-md-3", [ Host.view(ctrl.host) ]),
         m(".col-md-9", [
             Hosts.view(ctrl.list)
+        ])
         ])
     ]);
 }
