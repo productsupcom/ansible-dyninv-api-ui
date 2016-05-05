@@ -32,7 +32,12 @@ var Group = function(data) {
     d.name = data ? m.prop(data.name) : m.prop("");
     d.enabled = data ? m.prop(data.enabled) : m.prop("");
     d.variables = data ? m.prop(data.variables) : m.prop([]);
-    d.hosts = data ? m.prop(data.hosts) : m.prop([]);
+    d.hosts_arr = data ? m.prop(data.hosts) : m.prop([]);
+    d.hosts = function(){
+        return Hosts.list().filter(function(el){
+            return d.hosts_arr().indexOf(el.d.id());
+        });
+    }
 }
 
 Group.prototype.toJSON = function() {
@@ -57,6 +62,155 @@ Group.prototype.toJSON = function() {
     return obj;
 };
 
+var Groups = function() {};
+Groups.list = m.prop([]);
+Groups.api = {
+    first: false,
+    next: false,
+    previous: false,
+    last: false,
+    total: undefined,
+    initial: true
+}
+
+Groups.storage = mx.storage('Groups', mx.LOCAL_STORAGE);
+Groups.store = function(value, add = false) {
+    if (value instanceof Array) {
+        if (!add) {
+            Groups.list(Groups.list().concat(value));
+        }
+        Groups.storage.set('groupsList', Groups.list());
+        return Groups.list();
+    }
+    if (!value && localStorage.getItem('groupsList') !== null) {
+        console.log('Fetching from localStorage');
+        Groups.storage.get('groupsList').forEach(function(element){
+            Groups.list().push(new Group(element));
+        });
+
+        return true;
+    }
+}
+
+Groups.getList = function(direction=false) {
+    var base = "http://127.0.0.1:8000";
+    var end = "/groups";
+
+    if (Groups.api.total !== undefined && Groups.list().length == Groups.api.total) {
+        return;
+    }
+
+    if (!direction) {
+        if (Groups.store()) {
+            m.redraw();
+            return;
+        }
+    }
+
+    url = base+end;
+    if (direction == "next") {
+        if (!Groups.api.next) {
+            return;
+        }
+        url = base+Groups.api.next;
+    }
+    if (direction == "previous") {
+        if (!Groups.api.previous) {
+            return;
+        }
+        url = base+Groups.api.previous;
+    }
+    if (direction == "last") {
+        url = base+Groups.api.last;
+    }
+    console.log(url);
+
+    console.log(Groups.api.total);
+    console.log(Groups.list().length);
+    m.request({
+        method: "GET",
+        url: url,
+        background: true,
+        initialValue: [],
+        unwrapSuccess: function(response) {
+            Groups.api.initial = false;
+            Groups.api.next = response["hydra:nextPage"] || false;
+            Groups.api.previous = response["hydra:previousPage"] || false;
+            Groups.api.last = response["hydra:lastPage"];
+            Groups.api.first = response["hydra:firstPage"];
+            Groups.api.total = response["hydra:totalItems"];
+            console.log(Groups.api.total);
+            console.log(Groups.list().length);
+            return response["hydra:member"];
+        },
+        type: Group
+    }).then(log)
+    .then(Groups.store)
+    .then(m.redraw)
+    .then(function(data){
+        // while debugging other stuff disable this
+        Groups.getList('next');
+    });
+}
+
+Groups.vm = (function() {
+    var vm = {}
+    vm.init = function() {
+        Groups.getList();
+        vm.list = Groups.list;
+    }
+
+    //vm.createGroup = function() {
+    //    Host.vm.create();
+    //}
+
+    //vm.select = function(host) {
+    //    Host.vm.select(host);
+    //}
+
+    //vm.update = function(data) {
+    //    Host.vm.update(data);
+    //}
+    return vm
+}())
+
+Groups.controller = function() {
+    Groups.vm.init();
+}
+
+Groups.view = function() {
+    return m("div[class=panel panel-default]", [
+            m("div[class=panel-heading]", [
+                m("h3[class=panel-title", "Available Groups"),
+            ]),
+            m("div[class=panel-body]", [
+            //    m("button[class=btn btn-default]", {onclick: m.withAttr("data-id", function(value){
+            //                    Hosts.vm.createHost();
+            //                })}, "New Host"),
+            ]),
+
+            m("table[class=table table-condensed table-striped table-hover]", sorts(Groups.list()), [
+                m("thead", [
+                    m("tr", [
+                        m("th[data-sort-by=name]", {}, 'Name'),
+                    ])
+                ]),
+                m("tbody", [
+                Groups.vm.list().map(function(group, index, array) {
+                    return m("tr[data-id="+group.d.id()+"]", {
+                            class: (group == Groups.vm.group) ? 'success' : '',
+                            onclick: m.withAttr("data-id", function(value){
+                                Groups.vm.select(group);
+                            })
+                        }, [
+                        m("td", {}, group.d.name()),
+                    ])
+                })
+          ])
+        ])
+    ]);
+};
+
 var Host = function(data) {
     this.d = {};
     var d = this.d;
@@ -68,7 +222,12 @@ var Host = function(data) {
     d.hostname = data ? m.prop(data.hostname) : m.prop("");
     d.updated = data ? m.prop(data.updated) : m.prop("");
     d.ip = data ? m.prop(data.ip) : m.prop("");
-    d.groups = data ? m.prop(data.groups) : m.prop([]);
+    d.groups_arr = data ? m.prop(data.groups || []) : m.prop([]);
+    d.groups = function(){
+        return Groups.list().filter(function(el){
+            return d.groups_arr().indexOf(el.d.id());
+        });
+    }
     d.variables = data ? m.prop(data.variables) : m.prop([]);
 
     this.editable = [
@@ -77,7 +236,7 @@ var Host = function(data) {
         'host',
         'hostname',
         'ip',
-        'groups',
+        'groups_arr',
         'variables'
     ];
     this.state = {
@@ -96,7 +255,7 @@ Host.prototype.toJSON = function() {
         "hostname": d.hostname(),
         "updated": d.updated(),
         "ip": d.ip(),
-        "groups": d.groups(),
+        "groups": d.groups_arr(),
         "variables": d.variables()
     };
     console.log(obj);
@@ -175,6 +334,26 @@ Host.vm = (function() {
         Host.post(data);
     }
 
+    vm.inGroup = function(group) {
+        if (vm.host.d.groups_arr().indexOf(group.d.id()) > 0) {
+            return true;
+        }
+
+        return false;
+    }
+
+    vm.addGroup = function(value) {
+        if (vm.host.d.groups_arr().indexOf(value) === -1) {
+            console.log('adding group', value);
+            vm.host.d.groups_arr().push(value);
+        } else {
+            console.log('removing group', value);
+            vm.host.d.groups_arr(vm.host.d.groups_arr().filter(function (el) {
+                return el !== value;
+            }));
+        }
+    }
+
     return vm
 }())
 
@@ -183,6 +362,71 @@ Host.controller = function() {
 }
 
 Host.view = function() {
+    return m("div", [
+            m("div[class=panel panel-primary]", [
+                m("div[class=panel-heading]", [
+                    m("h3[class=panel-title]", "Edit Host"),
+                    ]),
+                m("div[class=panel-body]", [
+                    m("div[class=checkbox]", [
+                        m("label[for=enabled]", [
+                            m("input[id=enabled],[type=checkbox]", {onchange: m.withAttr("value", Host.vm.host.d.enabled), value: Host.vm.host.d.enabled()}),
+                            ], "Enabled"),
+                        ]),
+                    m("div[class=form-group]", [
+                        m("label[for=ip]", "IP"),
+                        m("input[id=ip],[class=form-control]", {onchange: m.withAttr("value", Host.vm.host.d.ip), value: Host.vm.host.d.ip()}),
+                        ]),
+                    m("div[class=form-group]", [
+                        m("label[for=hostname]", "Hostname"),
+                        m("input[id=hostname],[class=form-control]", {onchange: m.withAttr("value", Host.vm.host.d.hostname), value: Host.vm.host.d.hostname()}),
+                        ]),
+                    m("div[class=form-group]", [
+                        m("label[for=host]", "Host"),
+                        m("input[id=host],[class=form-control]", {onchange: m.withAttr("value", Host.vm.host.d.host), value: Host.vm.host.d.host()}),
+                        ]),
+                    m("div[class=form-group]", [
+                        m("label[for=domain]", "Domain"),
+                        m("input[id=domain],[class=form-control]", {onchange: m.withAttr("value", Host.vm.host.d.domain), value: Host.vm.host.d.domain()}),
+                        ]),
+
+              m("div[class=panel panel-info]", [
+                m("div[class=panel-heading]", [
+                    m("h3[class=panel-title]", "Groups"),
+                ]),
+                m("div", {class: "panel-body", style: {maxHeight: "200px", overflowY: "scroll"}}, [
+                    Groups.list().map(function(group, index) {
+                        return m("div[class=checkbox]", [
+                            m("label", {for: group.d.name()}, [
+                                m("input[id=enabled],[type=checkbox]", {onchange: m.withAttr("value", Host.vm.addGroup), value: group.d.id(), checked: Host.vm.inGroup(group) }),
+                                ], group.d.name()),
+                            ]);
+                    })
+                    ]),
+
+              //Object.keys(Host.vm.host.d).map(function(property, index) {
+              //    if (Host.vm.host.editable.indexOf(property) >= 0) {
+              //        return m("div[class=form-group]", [
+              //            m("label[for="+property+"]", property),
+              //            m("input[id="+property+"],[class=form-control]", {onchange: m.withAttr("value", Host.vm.host.d[property]), value: Host.vm.host.d[property]()}),
+              //        ]);
+              //    }
+              //}),
+                    ]),
+              m("button[class=btn btn-default]", {onclick:  function(value){
+                  //Host.vm.host = host;
+                  if (Host.vm.host.d.id()) {
+                      Host.vm.update(Host.vm.host);
+                  } else {
+                      Host.vm.post(Host.vm.host);
+                  }
+              }}, "Save"),
+              ]),
+              ]),
+                ]);
+};
+
+Host.view_old = function() {
     return m("div[class=panel panel-default]", [
             m("div[class=panel-heading]", [
                 m("h3[class=panel-title", "Edit Host"),
@@ -416,6 +660,7 @@ ansible.controller = function() {
 
     ctrl.list = new Hosts.controller();
     ctrl.host = new Host.controller();
+    ctrl.groupList = new Groups.controller();
 }
 
 ansible.view = function(ctrl) {
@@ -423,6 +668,7 @@ ansible.view = function(ctrl) {
         m(".row-fluid", [
         //m(".col-md-3", [ Host.vm.host.d.ip() ? Host.view(ctrl.host) : '' ]),
         m(".col-md-3", [ Host.view(ctrl.host) ]),
+        //m(".col-md-3", [ Groups.view(ctrl.groupList) ]),
         m(".col-md-9", [
             Hosts.view(ctrl.list)
         ])
