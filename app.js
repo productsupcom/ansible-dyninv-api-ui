@@ -228,7 +228,7 @@ var Host = function(data) {
             return d.groups_arr().indexOf(el.d.id());
         });
     }
-    d.variables = data ? m.prop(data.variables) : m.prop([]);
+    d.variables = data ? m.prop(data.variables) : m.prop({});
 
     this.editable = [
         'domain',
@@ -312,18 +312,40 @@ Host.host = new Host();
 
 Host.vm = (function() {
     var vm = {}
+    var jseditor = {}
     vm.init = function() {
         vm.host = Host.host;
     }
 
     vm.select = function(host) {
         vm.host = host;
+        if (jseditor.editor != undefined) {
+            jseditor.editor.destroy();
+        }
+        jseditor.editorContainer = document.getElementById("hostEditorvariables");
+        jseditor.editorOptions = {};
+        jseditor.editor = new JSONEditor(jseditor.editorContainer, jseditor.editorOptions);
+
+        console.log(vm.host.d.variables());
+        if (vm.host.d.variables() == undefined) {
+            vm.host.d.variables({});
+        }
+        jseditor.editor.set(vm.host.d.variables());
         m.redraw();
     }
 
     vm.create = function() {
-        vm.host = new Host()
-        m.redraw();
+        vm.select(new Host());
+    }
+
+    vm.save = function(host) {
+        host.d.variables(jseditor.editor.get());
+
+        if (host.d.id()) {
+            vm.update(host);
+        } else {
+            vm.post(host);
+        }
     }
 
     vm.update = function(data) {
@@ -389,6 +411,10 @@ Host.view = function() {
                         m("label[for=domain]", "Domain"),
                         m("input[id=domain],[class=form-control]", {onchange: m.withAttr("value", Host.vm.host.d.domain), value: Host.vm.host.d.domain()}),
                         ]),
+                    m("div[class=form-group]", [
+                        m("label[for=hostEditorvariables]", "Variables"),
+                        m("div[id=hostEditorvariables]", {style: {height: "400px"}}),
+                        ]),
 
               m("div[class=panel panel-info]", [
                 m("div[class=panel-heading]", [
@@ -415,11 +441,7 @@ Host.view = function() {
                     ]),
               m("button[class=btn btn-default]", {onclick:  function(value){
                   //Host.vm.host = host;
-                  if (Host.vm.host.d.id()) {
-                      Host.vm.update(Host.vm.host);
-                  } else {
-                      Host.vm.post(Host.vm.host);
-                  }
+                  Host.vm.save(Host.vm.host);
               }}, "Save"),
               ]),
               ]),
