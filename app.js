@@ -342,7 +342,7 @@ Host.vm = (function() {
         return false;
     }
 
-    vm.addGroup = function(value) {
+    vm.modGroup = function(value) {
         if (vm.host.d.groups_arr().indexOf(value) === -1) {
             console.log('adding group', value);
             vm.host.d.groups_arr().push(value);
@@ -398,7 +398,7 @@ Host.view = function() {
                     Groups.list().map(function(group, index) {
                         return m("div[class=checkbox]", [
                             m("label", {for: group.d.name()}, [
-                                m("input[id=enabled],[type=checkbox]", {onchange: m.withAttr("value", Host.vm.addGroup), value: group.d.id(), checked: Host.vm.inGroup(group) }),
+                                m("input[id=enabled],[type=checkbox]", {onchange: m.withAttr("value", Host.vm.modGroup), value: group.d.id(), checked: Host.vm.inGroup(group) }),
                                 ], group.d.name()),
                             ]);
                     })
