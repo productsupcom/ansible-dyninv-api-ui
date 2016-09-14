@@ -326,7 +326,6 @@ Host.vm = (function() {
         jseditor.editorOptions = {};
         jseditor.editor = new JSONEditor(jseditor.editorContainer, jseditor.editorOptions);
 
-        console.log(vm.host.d.variables());
         if (vm.host.d.variables() == undefined) {
             vm.host.d.variables({});
         }
@@ -421,59 +420,22 @@ Host.view = function() {
                     m("h3[class=panel-title]", "Groups"),
                 ]),
                 m("div", {class: "panel-body", style: {maxHeight: "200px", overflowY: "scroll"}}, [
-                    Groups.list().map(function(group, index) {
+                    Host.vm.groups().map(function(group, index) {
                         return m("div[class=checkbox]", [
                             m("label", {for: group.d.name()}, [
                                 m("input[id=enabled],[type=checkbox]", {onchange: m.withAttr("value", Host.vm.modGroup), value: group.d.id(), checked: Host.vm.inGroup(group) }),
                                 ], group.d.name()),
                             ]);
                     })
-                    ]),
-
-              //Object.keys(Host.vm.host.d).map(function(property, index) {
-              //    if (Host.vm.host.editable.indexOf(property) >= 0) {
-              //        return m("div[class=form-group]", [
-              //            m("label[for="+property+"]", property),
-              //            m("input[id="+property+"],[class=form-control]", {onchange: m.withAttr("value", Host.vm.host.d[property]), value: Host.vm.host.d[property]()}),
-              //        ]);
-              //    }
-              //}),
-                    ]),
+                ]),
+              ]),
               m("button[class=btn btn-default]", {onclick:  function(value){
-                  //Host.vm.host = host;
                   Host.vm.save(Host.vm.host);
               }}, "Save"),
               ]),
               ]),
                 ]);
 };
-
-Host.view_old = function() {
-    return m("div[class=panel panel-default]", [
-            m("div[class=panel-heading]", [
-                m("h3[class=panel-title", "Edit Host"),
-            ]),
-            m("div[class=panel-body]", [
-            Object.keys(Host.vm.host.d).map(function(property, index) {
-                if (Host.vm.host.editable.indexOf(property) >= 0) {
-                    return m("div[class=form-group]", [
-                        m("label[for="+property+"]", property),
-                        m("input[id="+property+"],[class=form-control]", {onchange: m.withAttr("value", Host.vm.host.d[property]), value: Host.vm.host.d[property]()}),
-                    ]);
-                }
-            }),
-            m("button[class=btn btn-default]", {onclick:  function(value){
-                            //Host.vm.host = host;
-                            if (Host.vm.host.d.id()) {
-                                Host.vm.update(Host.vm.host);
-                            } else {
-                                Host.vm.post(Host.vm.host);
-                            }
-                        }}, "Save"),
-        ]),
-    ]);
-};
-
 
 var Hosts = function(){};
 Hosts.list = m.prop([]);
@@ -689,9 +651,9 @@ ansible.view = function(ctrl) {
     return m("div[class=container-fluid]", [
         m(".row-fluid", [
         //m(".col-md-3", [ Host.vm.host.d.ip() ? Host.view(ctrl.host) : '' ]),
-        m(".col-md-3", [ Host.view(ctrl.host) ]),
+        m(".col-md-4", [ Host.view(ctrl.host) ]),
         //m(".col-md-3", [ Groups.view(ctrl.groupList) ]),
-        m(".col-md-9", [
+        m(".col-md-8", [
             Hosts.view(ctrl.list)
         ])
         ])
