@@ -24,6 +24,7 @@ function sorts(list) {
     }
 }
 
+
 var Group = function(data) {
     this.d = {};
     var d = this.d;
@@ -317,6 +318,33 @@ Host.vm = (function() {
         vm.host = Host.host;
     }
 
+    vm.groups = function() {
+        //console.log(Groups.list());
+        //Groups.list().forEach(function(group, index, arr) {
+        //    console.log(group.d.name());
+        //});
+        var groups = Groups.list().sort(function(a, b) {
+            if (a.d.name().toLowerCase() < b.d.name().toLowerCase()) {
+                return -1;
+            }
+            if (a.d.name().toLowerCase() > b.d.name().toLowerCase()) {
+                return 1;
+            }
+            return 0;
+        }).sort(function(a, b) {
+            if (Host.vm.inGroup(a) < Host.vm.inGroup(b)) {
+                return 1;
+            }
+            if (Host.vm.inGroup(a) > Host.vm.inGroup(b)) {
+                return -1;
+            }
+
+            return 0;
+        })
+
+        return groups;
+    }
+
     vm.select = function(host) {
         vm.host = host;
         if (jseditor.editor != undefined) {
@@ -559,6 +587,7 @@ Hosts.vm = (function() {
         Hosts.getList();
         vm.list = Hosts.list;
     }
+
     vm.next = function() {
         Hosts.getList("next");
     }
@@ -583,14 +612,32 @@ Hosts.vm = (function() {
     vm.update = function(data) {
         Host.vm.update(data);
     }
+
+    vm.pager = {};
+    // pagination needed things
+    //var pagination = m.prop({});
+    vm.pager.totalItems = function() {
+        return vm.list() ? vm.list().length : 0;
+    }.bind(vm.pager);
+
+    vm.pager.currentPage = m.prop(0);
+    vm.pager.itemsPerPage = m.prop(20);
+    vm.pager.maxSize = 7;
+    vm.pager.directionLinks = true;
+    vm.pager.boundaryLinks = true;
+    vm.pager.previousText = '<';
+    vm.pager.nextText = '>';
+    vm.pager.pagination = m.u.init(m.ui.pagination(vm.pager));
+
     return vm
 }())
 
 Hosts.controller = function() {
-    Hosts.vm.init();
+    var vm = Hosts.vm;
+    vm.init();
 }
 
-Hosts.view = function() {
+Hosts.view = function(ctrl) {
     return m("div[class=panel panel-default]", [
             m("div[class=panel-heading]", [
                 m("h3[class=panel-title", "Available Hosts"),
@@ -599,7 +646,11 @@ Hosts.view = function() {
                 m("button[class=btn btn-default]", {onclick: m.withAttr("data-id", function(value){
                                 Hosts.vm.createHost();
                             })}, "New Host"),
+                m("label[for=itemsPerPage]", "Items per Page"),
+                m("input[id=itemsPerPage],[type=number],[step=10]", {onchange: m.withAttr("value", Hosts.vm.pager.itemsPerPage), value: Hosts.vm.pager.itemsPerPage()}),
+                m("div", [Hosts.vm.pager.pagination.$view()]),
             ]),
+
 
             m("table[class=table table-condensed table-striped table-hover]", sorts(Hosts.list()), [
                 m("thead", [
@@ -613,7 +664,11 @@ Hosts.view = function() {
                     ])
                 ]),
                 m("tbody", [
-                Hosts.vm.list().map(function(host, index, array) {
+                Hosts.vm.list()
+                .slice(
+                    Hosts.vm.pager.itemsPerPage() * Hosts.vm.pager.currentPage(),
+                    Hosts.vm.pager.itemsPerPage() * (Hosts.vm.pager.currentPage() + 1))
+                .map(function(host, i) {
                     return m("tr[data-id="+host.d.ip()+"]", {
                             class: (host == Host.vm.host) ? 'success' : '',
                             onclick: m.withAttr("data-id", function(value){
@@ -628,8 +683,8 @@ Hosts.view = function() {
                         //    Hosts.vm.update(host);
                         //}), value: host.host()})]),
                         m("td", {}, host.d.hostname()),
-                        m("td", {}, host.d.created()),
-                        m("td", {}, host.d.updated()),
+                        m("td", {}, dateFormat(Date.parse(host.d.created()))),
+                        m("td", {}, dateFormat(Date.parse(host.d.updated()))),
                     ])
                 })
           ])
