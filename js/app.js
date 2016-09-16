@@ -161,17 +161,6 @@ Groups.vm = (function() {
         vm.list = Groups.list;
     }
 
-    //vm.createGroup = function() {
-    //    Host.vm.create();
-    //}
-
-    //vm.select = function(host) {
-    //    Host.vm.select(host);
-    //}
-
-    //vm.update = function(data) {
-    //    Host.vm.update(data);
-    //}
     return vm
 }())
 
@@ -240,9 +229,10 @@ var Host = function(data) {
         'groups_arr',
         'variables'
     ];
-    this.state = {
-        visible: m.prop(true)
-    };
+
+    this.state = {};
+    var state = this.state;
+    state.visible = m.prop(true);
 };
 
 Host.prototype.toJSON = function() {
@@ -467,6 +457,7 @@ Host.view = function() {
 
 var Hosts = function(){};
 Hosts.list = m.prop([]);
+Hosts.picked = m.prop([]);
 Hosts.api = {
     first: false,
     next: false,
@@ -499,6 +490,27 @@ Hosts.add = function(host) {
     m.redraw();
 
     return host;
+}
+
+Hosts.pick = function(host) {
+    var found = Hosts.picked().some(function (el) {
+        return el.d.id() == host.d.id();
+    });
+    if (!found) {
+        // add to picked
+        Hosts.picked().push(host);
+    } else {
+        // remove from picked
+        Hosts.picked(Hosts.picked().filter(function (el) {
+            return el !== host;
+        }));
+    }
+}
+
+Hosts.isPicked = function(host) {
+    return Hosts.picked().some(function (el) {
+        return el.d.id() == host.d.id();
+    });
 }
 
 Hosts.storage = mx.storage('Hosts', mx.LOCAL_STORAGE);
@@ -588,6 +600,29 @@ Hosts.vm = (function() {
         vm.list = Hosts.list;
     }
 
+    vm.picked = function() {
+        var toggle = vm.pickButtons();
+        if (toggle != 'manual') {
+            if (toggle == 'none') {
+                Hosts.picked([]);
+            }
+            if (toggle == 'all') {
+                Hosts.picked(Hosts.list());
+            }
+            if (toggle == 'inverse') {
+                var newlist = Hosts.list();
+                Hosts.picked().forEach(function(host) {
+                    newlist = newlist.filter(function (el) {
+                        return el !== host;
+                    });
+                });
+                Hosts.picked(newlist);
+            }
+            vm.pickButtons('manual');
+        }
+        return Hosts.picked();
+    }
+
     vm.next = function() {
         Hosts.getList("next");
     }
@@ -607,6 +642,15 @@ Hosts.vm = (function() {
 
     vm.select = function(host) {
         Host.vm.select(host);
+    }
+
+    vm.pick = function(host) {
+        vm.pickButtons('manual');
+        Hosts.pick(host);
+    }
+
+    vm.isPicked = function(host) {
+        return Hosts.isPicked(host);
     }
 
     vm.update = function(data) {
@@ -629,6 +673,9 @@ Hosts.vm = (function() {
     vm.pager.nextText = '>';
     vm.pager.pagination = m.u.init(m.ui.pagination(vm.pager));
 
+    vm.pickButtons = m.prop('manual');
+
+
     return vm
 }())
 
@@ -650,11 +697,30 @@ Hosts.view = function(ctrl) {
                 m("input[id=itemsPerPage],[type=number],[step=10]", {onchange: m.withAttr("value", Hosts.vm.pager.itemsPerPage), value: Hosts.vm.pager.itemsPerPage()}),
                 m("div", [Hosts.vm.pager.pagination.$view()]),
             ]),
+            m("pre", {}, "Hosts selected: ", Hosts.vm.picked().length),
+
+            m("div", {
+                class: "btn-group"
+                }, [
+                m("button", {
+                  class: "btn",
+                  config: m.ui.configRadio(Hosts.vm.pickButtons, 'none')
+                }, ["None"]),
+                m("button", {
+                  class: "btn",
+                  config: m.ui.configRadio(Hosts.vm.pickButtons, 'inverse')
+                }, ["Inverse"]),
+                m("button", {
+                  class: "btn",
+                  config: m.ui.configRadio(Hosts.vm.pickButtons, 'all')
+                }, ["All"])
+            ]),
 
 
             m("table[class=table table-condensed table-striped table-hover]", sorts(Hosts.list()), [
                 m("thead", [
                     m("tr", [
+                        m("th[data-sort-by=state-picked]", {}, 'Pick'),
                         m("th[data-sort-by=ip]", {}, 'IP'),
                         m("th[data-sort-by=domain]", {}, 'Domain'),
                         m("th[data-sort-by=host]", {}, 'Host'),
@@ -671,17 +737,20 @@ Hosts.view = function(ctrl) {
                 .map(function(host, i) {
                     return m("tr[data-id="+host.d.ip()+"]", {
                             class: (host == Host.vm.host) ? 'success' : '',
-                            onclick: m.withAttr("data-id", function(value){
-                                Hosts.vm.select(host);
-                            })
+                            onclick: function(e) {
+                                Host.vm.select(host);
+                            }
                         }, [
+                        m("td", {}, m("input[type=checkbox]", {
+                            onclick: function(e) {
+                                Hosts.vm.pick(host)
+                                e.stopImmediatePropagation();
+                            },
+                            checked: Hosts.vm.isPicked(host)})
+                            ),
                         m("td", {}, host.d.ip()),
                         m("td", {}, host.d.domain()),
                         m("td", {}, host.d.host()),
-                        //m("td", [m("input", {onchange: m.withAttr("value", function(value){
-                        //    host.host(value);
-                        //    Hosts.vm.update(host);
-                        //}), value: host.host()})]),
                         m("td", {}, host.d.hostname()),
                         m("td", {}, dateFormat(Date.parse(host.d.created()))),
                         m("td", {}, dateFormat(Date.parse(host.d.updated()))),
