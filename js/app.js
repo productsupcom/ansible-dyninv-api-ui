@@ -308,38 +308,19 @@ Host.vm = (function() {
         vm.host = Host.host;
     }
 
-    vm.groups = function() {
-        //console.log(Groups.list());
-        //Groups.list().forEach(function(group, index, arr) {
-        //    console.log(group.d.name());
-        //});
-        var groups = Groups.list().sort(function(a, b) {
-            if (a.d.name().toLowerCase() < b.d.name().toLowerCase()) {
-                return -1;
-            }
-            if (a.d.name().toLowerCase() > b.d.name().toLowerCase()) {
-                return 1;
-            }
-            return 0;
-        }).sort(function(a, b) {
-            if (Host.vm.inGroup(a) < Host.vm.inGroup(b)) {
-                return 1;
-            }
-            if (Host.vm.inGroup(a) > Host.vm.inGroup(b)) {
-                return -1;
-            }
-
-            return 0;
-        })
-
-        return groups;
-    }
+    vm.groups = Groups.list();
 
     vm.select = function(host) {
         vm.host = host;
+        vm.initGroupSelect();
+        vm.initJsonEditor();
+    }
+
+    vm.initJsonEditor = function() {
         if (jseditor.editor != undefined) {
             jseditor.editor.destroy();
         }
+        m.startComputation();
         jseditor.editorContainer = document.getElementById("hostEditorvariables");
         jseditor.editorOptions = {};
         jseditor.editor = new JSONEditor(jseditor.editorContainer, jseditor.editorOptions);
@@ -348,6 +329,7 @@ Host.vm = (function() {
             vm.host.d.variables({});
         }
         jseditor.editor.set(vm.host.d.variables());
+        m.endComputation();
         m.redraw();
     }
 
@@ -374,7 +356,7 @@ Host.vm = (function() {
     }
 
     vm.inGroup = function(group) {
-        if (vm.host.d.groups_arr().indexOf(group.d.id()) > 0) {
+        if (vm.host.d.groups_arr().indexOf(group.d.id()) >= 0) {
             return true;
         }
 
@@ -437,14 +419,12 @@ Host.view = function() {
                 m("div[class=panel-heading]", [
                     m("h3[class=panel-title]", "Groups"),
                 ]),
-                m("div", {class: "panel-body", style: {maxHeight: "200px", overflowY: "scroll"}}, [
-                    Host.vm.groups().map(function(group, index) {
-                        return m("div[class=checkbox]", [
-                            m("label", {for: group.d.name()}, [
-                                m("input[id=enabled],[type=checkbox]", {onchange: m.withAttr("value", Host.vm.modGroup), value: group.d.id(), checked: Host.vm.inGroup(group) }),
-                                ], group.d.name()),
-                            ]);
-                    })
+                m("div", [
+                    m("select[id=groupSelect]", {multiple: 'multiple'}, [ //, size: Host.vm.groups.length}, [
+                        Host.vm.groups.map(function(group, index) {
+                            return m("option", {value: group.d.id(), selected: Host.vm.inGroup(group)}, group.d.name())
+                        })
+                    ])
                 ]),
               ]),
               m("button[class=btn btn-default]", {onclick:  function(value){
