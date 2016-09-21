@@ -303,7 +303,6 @@ Host.host = new Host();
 
 Host.vm = (function() {
     var vm = {}
-    var jseditor = {}
     vm.init = function() {
         vm.host = Host.host;
     }
@@ -312,26 +311,30 @@ Host.vm = (function() {
 
     vm.select = function(host) {
         vm.host = host;
-        vm.initGroupSelect();
-        vm.initJsonEditor();
+        vm.openModal();
     }
 
-    vm.initJsonEditor = function() {
-        if (jseditor.editor != undefined) {
-            jseditor.editor.destroy();
-        }
-        m.startComputation();
-        jseditor.editorContainer = document.getElementById("hostEditorvariables");
-        jseditor.editorOptions = {};
-        jseditor.editor = new JSONEditor(jseditor.editorContainer, jseditor.editorOptions);
+    vm.openModal = function(size) {
+        vm.modalInstance = m.u.init(m.ui.modal({
+            size: size,
+            params: {
+                host: vm.host
+            },
+            module: HostModal,
+            onopen: function(modalCtrl){
+                // redraw first else it didn't finish rendering the view yet
+                m.redraw();
+                vm.initJsonEditor();
+                vm.initGroupSelect();
+            }
+        }));
 
-        if (vm.host.d.variables() == undefined) {
-            vm.host.d.variables({});
-        }
-        jseditor.editor.set(vm.host.d.variables());
-        m.endComputation();
-        m.redraw();
-    }
+        vm.modalInstance.result.then(function() {
+            Host.vm.save(Host.vm.host);
+        }, function() {
+            console.log('Modal dismissed');
+        });
+    };
 
     vm.create = function() {
         vm.select(new Host());
@@ -375,6 +378,44 @@ Host.vm = (function() {
         }
     }
 
+    var jseditor = {}
+    vm.initJsonEditor = function() {
+        if (jseditor.editor != undefined) {
+            jseditor.editor.destroy();
+        }
+        m.startComputation();
+        jseditor.editorContainer = document.getElementById("hostEditorvariables");
+        jseditor.editorOptions = {};
+        jseditor.editor = new JSONEditor(jseditor.editorContainer, jseditor.editorOptions);
+
+        if (vm.host.d.variables() == undefined) {
+            vm.host.d.variables({});
+        }
+        jseditor.editor.set(vm.host.d.variables());
+        m.endComputation();
+        m.redraw();
+    }
+
+    vm.initGroupSelect = function() {
+        var el = $("#groupSelect");
+        if (el.hasClass("select2-hidden-accessible")) {
+            // redraw to reflect the change, else it can sometimes show the old one
+            el.select2("destroy");
+            m.redraw();
+        }
+        el.select2();
+        el.on("change", function(e) {
+            m.startComputation();
+            var groups = el.select2("val");
+
+            // simply set the returned array as the new group list
+            Host.vm.host.d.groups_arr(groups);
+
+            m.endComputation();
+            m.redraw();
+        });
+    }
+
     return vm
 }())
 
@@ -382,57 +423,100 @@ Host.controller = function() {
     Host.vm.init();
 }
 
-Host.view = function() {
+var HostModal = {};
+
+HostModal.vm = (function() {
+    var vm = {};
+
+    return vm;
+}())
+
+HostModal.controller = function(params) {
+  var ctrl = this;
+  var vm = HostModal.vm;
+
+  ctrl.host = params.host;
+
+  ctrl.ok = function() {
+    ctrl.$modal.close();
+  };
+
+  ctrl.cancel = function() {
+    ctrl.$modal.dismiss('Cancel');
+  };
+}
+
+HostModal.view = function(ctrl) {
     return m("div", [
-            m("div[class=panel panel-primary]", [
-                m("div[class=panel-heading]", [
-                    m("h3[class=panel-title]", "Edit Host"),
+            m("div", {class: "modal-header"}, [
+                m("h3", {class: "modal-title"}, ["Edit Host"]),
+                ]),
+            m("div", {class: "modal-body"}, [
+                m("div", {class: "panel panel-info"}, [
+                    m("div", {class:"panel-heading"}, [
+                        m("h3", {class:"panel-title"}, "Information"),
                     ]),
-                m("div[class=panel-body]", [
-                    m("div[class=checkbox]", [
-                        m("label[for=enabled]", [
-                            m("input[id=enabled],[type=checkbox]", {onchange: m.withAttr("value", Host.vm.host.d.enabled), value: Host.vm.host.d.enabled()}),
+                    m("div", {class: "panel-body"}, [
+                        m("div", {class:"checkbox"}, [
+                            m("label[for=enabled]", [
+                                m("input[id=enabled],[type=checkbox]", {onchange: m.withAttr("value", Host.vm.host.d.enabled), value: Host.vm.host.d.enabled()}),
                             ], "Enabled"),
                         ]),
-                    m("div[class=form-group]", [
-                        m("label[for=ip]", "IP"),
-                        m("input[id=ip],[class=form-control]", {onchange: m.withAttr("value", Host.vm.host.d.ip), value: Host.vm.host.d.ip()}),
+                        m("div", {class:"form-group"}, [
+                            m("label[for=ip]", "IP"),
+                            m("input[id=ip],[class=form-control]", {onchange: m.withAttr("value", Host.vm.host.d.ip), value: Host.vm.host.d.ip()}),
                         ]),
-                    m("div[class=form-group]", [
-                        m("label[for=hostname]", "Hostname"),
-                        m("input[id=hostname],[class=form-control]", {onchange: m.withAttr("value", Host.vm.host.d.hostname), value: Host.vm.host.d.hostname()}),
+                        m("div", {class:"form-group"}, [
+                            m("label[for=hostname]", "Hostname"),
+                            m("input[id=hostname],[class=form-control]", {onchange: m.withAttr("value", Host.vm.host.d.hostname), value: Host.vm.host.d.hostname()}),
                         ]),
-                    m("div[class=form-group]", [
-                        m("label[for=host]", "Host"),
-                        m("input[id=host],[class=form-control]", {onchange: m.withAttr("value", Host.vm.host.d.host), value: Host.vm.host.d.host()}),
+                        m("div", {class:"form-group"}, [
+                            m("label[for=host]", "Host"),
+                            m("input[id=host],[class=form-control]", {onchange: m.withAttr("value", Host.vm.host.d.host), value: Host.vm.host.d.host()}),
                         ]),
-                    m("div[class=form-group]", [
-                        m("label[for=domain]", "Domain"),
-                        m("input[id=domain],[class=form-control]", {onchange: m.withAttr("value", Host.vm.host.d.domain), value: Host.vm.host.d.domain()}),
+                        m("div", {class:"form-group"}, [
+                            m("label[for=domain]", "Domain"),
+                            m("input[id=domain],[class=form-control]", {onchange: m.withAttr("value", Host.vm.host.d.domain), value: Host.vm.host.d.domain()}),
                         ]),
-                    m("div[class=form-group]", [
-                        m("label[for=hostEditorvariables]", "Variables"),
-                        m("div[id=hostEditorvariables]", {style: {height: "400px"}}),
-                        ]),
-
-              m("div[class=panel panel-info]", [
-                m("div[class=panel-heading]", [
-                    m("h3[class=panel-title]", "Groups"),
-                ]),
-                m("div", [
-                    m("select[id=groupSelect]", {multiple: 'multiple'}, [ //, size: Host.vm.groups.length}, [
-                        Host.vm.groups.map(function(group, index) {
-                            return m("option", {value: group.d.id(), selected: Host.vm.inGroup(group)}, group.d.name())
-                        })
                     ])
                 ]),
-              ]),
-              m("button[class=btn btn-default]", {onclick:  function(value){
-                  Host.vm.save(Host.vm.host);
-              }}, "Save"),
-              ]),
-              ]),
-                ]);
+
+                m("div", {class: "panel panel-info"}, [
+                    m("div", {class:"panel-heading"}, [
+                        m("h3", {class:"panel-title"}, "Variables"),
+                    ]),
+                    m("div", [
+                        m("div[id=hostEditorvariables]", {style: {height: "400px"}}),
+                    ]),
+                ]),
+
+                m("div", {class: "panel panel-info"}, [
+                    m("div", {class:"panel-heading"}, [
+                        m("h3", {class:"panel-title"}, "Groups"),
+                    ]),
+                    m("div", [
+                        m("select[id=groupSelect]", {multiple: 'multiple'}, [ //, size: Host.vm.groups.length}, [
+                            Host.vm.groups.map(function(group, index) {
+                                return m("option", {value: group.d.id(), selected: Host.vm.inGroup(group)}, group.d.name())
+                            })
+                            ])
+                        ]),
+                ]),
+
+                m("div", {class:"modal-footer"}, [
+                    m("button", {class:"btn btn-default",
+                        onclick:  function(value){
+                            ctrl.cancel();
+                        }}, "Cancel"
+                    ),
+                    m("button[class=btn btn-primary]",
+                        {onclick:  function(value){
+                            ctrl.ok();
+                        }}, "Save"
+                    ),
+                ]),
+            ]),
+        ]);
 };
 
 var Hosts = function(){};
@@ -645,7 +729,7 @@ Hosts.vm = (function() {
     }.bind(vm.pager);
 
     vm.pager.currentPage = m.prop(0);
-    vm.pager.itemsPerPage = m.prop(20);
+    vm.pager.itemsPerPage = m.prop(30);
     vm.pager.maxSize = 7;
     vm.pager.directionLinks = true;
     vm.pager.boundaryLinks = true;
@@ -747,21 +831,37 @@ ansible.controller = function() {
     var ctrl = this;
 
     ctrl.list = new Hosts.controller();
-    ctrl.host = new Host.controller();
+    //ctrl.host = new Host.controller();
     ctrl.groupList = new Groups.controller();
 }
 
 ansible.view = function(ctrl) {
-    return m("div[class=container-fluid]", [
-        m(".row-fluid", [
-        //m(".col-md-3", [ Host.vm.host.d.ip() ? Host.view(ctrl.host) : '' ]),
-        m(".col-md-4", [ Host.view(ctrl.host) ]),
-        //m(".col-md-3", [ Groups.view(ctrl.groupList) ]),
-        m(".col-md-8", [
-            Hosts.view(ctrl.list)
+    return [
+    m("nav", {class:"navbar navbar-default navbar-fixed-top"}, [
+        m("div", {class: "container-fluid"}, [
+            m("div", {id:"navbar"}, [
+                m("ul", {class:"nav navbar-nav"}, [
+                    m("li", {}, [
+                        m("a", {}, ["Hosts"]),
+                    ]),
+                    m("li", {}, [
+                        m("a", {}, ["Groups"]),
+                    ]),
+                ]),
+            ]),
+        ]),
+    ]),
+    m("div", {class:"container-fluid"}, [
+        m("div", {class:"row-fluid"}, [
+            m("div", {class:"col-md-12"}, [
+                Hosts.view(ctrl.list)
+            ])
         ])
-        ])
-    ]);
+    ]),
+    m("div", [
+      Host.vm.modalInstance ? Host.vm.modalInstance.$view() : []
+    ])
+    ];
 }
 
 m.module(document.body, ansible);
