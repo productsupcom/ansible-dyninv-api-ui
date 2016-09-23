@@ -714,14 +714,6 @@ Hosts.vm = (function() {
             });
 
             return found;
-            if (host.d.ip().toUpperCase().includes(vm.listFilter().toUpperCase()) ||
-                host.d.domain().toUpperCase().includes(vm.listFilter().toUpperCase()) ||
-                host.d.host().toUpperCase().includes(vm.listFilter().toUpperCase()) ||
-                host.d.hostname().toUpperCase().includes(vm.listFilter().toUpperCase()) ||
-                host.d.created().toUpperCase().includes(vm.listFilter().toUpperCase()) ||
-                host.d.updated().toUpperCase().includes(vm.listFilter().toUpperCase()) ) {
-                return true;
-            }
         })
     };
 
