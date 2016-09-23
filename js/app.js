@@ -33,6 +33,9 @@ var Group = function(data) {
     d.name = data ? m.prop(data.name) : m.prop("");
     d.enabled = data ? m.prop(data.enabled) : m.prop("");
     d.variables = data ? m.prop(data.variables) : m.prop([]);
+    if (d.variables == {}) {
+        d.variables([]);
+    }
     d.hosts_arr = data ? m.prop(data.hosts) : m.prop([]);
     d.hosts = function(){
         return Hosts.list().filter(function(el){
@@ -190,7 +193,7 @@ Groups.view = function() {
                     return m("tr[data-id="+group.d.id()+"]", {
                             class: (group == Groups.vm.group) ? 'success' : '',
                             onclick: m.withAttr("data-id", function(value){
-                                Groups.vm.select(group);
+                                Groups.vm.edit(group);
                             })
                         }, [
                         m("td", {}, group.d.name()),
@@ -219,6 +222,9 @@ var Host = function(data) {
         });
     }
     d.variables = data ? m.prop(data.variables) : m.prop({});
+    if (d.variables == {}) {
+        d.variables([]);
+    }
 
     this.editable = [
         'domain',
@@ -249,15 +255,14 @@ Host.prototype.toJSON = function() {
         "groups": d.groups_arr(),
         "variables": d.variables()
     };
-    console.log(obj);
 
     Object.keys(obj).map(function(property, index) {
-        if (obj[property] === undefined || obj[property] == "") {
-            delete obj[property];
+        if (obj[property] === undefined || obj[property] === "") {
+            if (typeof(property) !== "boolean") {
+                delete obj[property];
+            }
         }
     });
-
-    console.log(obj);
 
     return obj;
 };
@@ -309,9 +314,11 @@ Host.vm = (function() {
 
     vm.groups = Groups.list();
 
-    vm.select = function(host) {
+    vm.edit = function(host, open = false) {
         vm.host = host;
-        vm.openModal();
+        if (open) {
+            Host.vm.openModal();
+        }
     }
 
     vm.openModal = function(size) {
@@ -337,11 +344,13 @@ Host.vm = (function() {
     };
 
     vm.create = function() {
-        vm.select(new Host());
+        vm.edit(new Host(), true);
     }
 
     vm.save = function(host) {
-        host.d.variables(jseditor.editor.get());
+        if (jseditor.editor != undefined) {
+            host.d.variables(jseditor.editor.get());
+        }
 
         if (host.d.id()) {
             vm.update(host);
@@ -367,6 +376,7 @@ Host.vm = (function() {
     }
 
     vm.modGroup = function(value) {
+        console.log(value);
         if (vm.host.d.groups_arr().indexOf(value) === -1) {
             console.log('adding group', value);
             vm.host.d.groups_arr().push(value);
@@ -416,6 +426,25 @@ Host.vm = (function() {
         });
     }
 
+    vm.enableButton = function(host) {
+        if (host.d.enabled()) {
+            return m('button', {
+                class:"btn btn-default btn-xs",
+                onclick: function() {host.d.enabled(false); vm.save(host)},
+            }, [
+                m("span", {class:"glyphicon glyphicon-pause"})
+            ]);
+
+        } else {
+            return m('button', {
+                class:"btn btn-default btn-xs",
+                onclick: function() {host.d.enabled(true); vm.save(host)},
+            }, [
+                m("span", {class:"glyphicon glyphicon-play"})
+            ]);
+        }
+    }
+
     return vm
 }())
 
@@ -459,7 +488,7 @@ HostModal.view = function(ctrl) {
                     m("div", {class: "panel-body"}, [
                         m("div", {class:"checkbox"}, [
                             m("label[for=enabled]", [
-                                m("input[id=enabled],[type=checkbox]", {onchange: m.withAttr("value", Host.vm.host.d.enabled), value: Host.vm.host.d.enabled()}),
+                                m("input[id=enabled],[type=checkbox]", {onchange: m.withAttr("checked", Host.vm.host.d.enabled), checked: Host.vm.host.d.enabled()}),
                             ], "Enabled"),
                         ]),
                         m("div", {class:"form-group"}, [
@@ -532,11 +561,13 @@ Hosts.api = {
 }
 
 Hosts.replace = function(host) {
-    console.log('replacing', host);
-    Hosts.list(Hosts.list().filter(function (el) {
-        return el.d.id() !== host.d.id();
-    }));
-    Hosts.list().push(host);
+    var index = Hosts.list().map(function(el){
+        return el.d.id();
+    }).indexOf(host.d.id());
+
+
+    Hosts.list().splice(index, 1, host);
+
     Hosts.store([], true);
     m.redraw();
 
@@ -661,8 +692,38 @@ Hosts.vm = (function() {
     var vm = {}
     vm.init = function() {
         Hosts.getList();
-        vm.list = Hosts.list;
+        //vm.list = Hosts.list;
     }
+
+    vm.listFilter = m.prop("");
+
+    vm.list = function(){
+        if (vm.listFilter() == "") {
+            return Hosts.list();
+        }
+        return Hosts.list().filter(function(host, i){
+            var searchable = ['ip', 'domain', 'host', 'hostname', 'created', 'updated'];
+            var found = false;
+
+            searchable.forEach(function(prop){
+                if (typeof(host.d[prop]()) === "string") {
+                    if (host.d[prop]().toUpperCase().includes(vm.listFilter().toUpperCase())) {
+                        found = true;
+                    }
+                }
+            });
+
+            return found;
+            if (host.d.ip().toUpperCase().includes(vm.listFilter().toUpperCase()) ||
+                host.d.domain().toUpperCase().includes(vm.listFilter().toUpperCase()) ||
+                host.d.host().toUpperCase().includes(vm.listFilter().toUpperCase()) ||
+                host.d.hostname().toUpperCase().includes(vm.listFilter().toUpperCase()) ||
+                host.d.created().toUpperCase().includes(vm.listFilter().toUpperCase()) ||
+                host.d.updated().toUpperCase().includes(vm.listFilter().toUpperCase()) ) {
+                return true;
+            }
+        })
+    };
 
     vm.picked = function() {
         var toggle = vm.pickButtons();
@@ -704,8 +765,8 @@ Hosts.vm = (function() {
         Host.vm.create();
     }
 
-    vm.select = function(host) {
-        Host.vm.select(host);
+    vm.edit = function(host) {
+        Host.vm.edit(host, true);
     }
 
     vm.pick = function(host) {
@@ -729,7 +790,7 @@ Hosts.vm = (function() {
     }.bind(vm.pager);
 
     vm.pager.currentPage = m.prop(0);
-    vm.pager.itemsPerPage = m.prop(30);
+    vm.pager.itemsPerPage = m.prop(25);
     vm.pager.maxSize = 7;
     vm.pager.directionLinks = true;
     vm.pager.boundaryLinks = true;
@@ -740,6 +801,25 @@ Hosts.vm = (function() {
     vm.pickButtons = m.prop('manual');
 
 
+    vm.columns = (function(){
+        var columns = {};
+        columns.ip = m.prop(true);
+        columns.domain = m.prop(true);
+        columns.host = m.prop(true);
+        columns.hostname = m.prop(true);
+        columns.created = m.prop(true);
+        columns.updated = m.prop(true);
+
+        return columns;
+    })();
+
+    vm.showAllColumns = function() {
+        Object.keys(Hosts.vm.columns).forEach(function(column){
+            vm.columns[column](true);
+        })
+        m.redraw();
+    }
+
     return vm
 }())
 
@@ -749,48 +829,99 @@ Hosts.controller = function() {
 }
 
 Hosts.view = function(ctrl) {
-    return m("div[class=panel panel-default]", [
-            m("div[class=panel-heading]", [
-                m("h3[class=panel-title", "Available Hosts"),
+    return m("div", {class:"panel panel-default"}, [
+            m("div", {class:"panel-heading"}, [
+                m("h3", {class:"panel-title"}, "Available Hosts"),
             ]),
-            m("div[class=panel-body]", [
-                m("button[class=btn btn-default]", {onclick: m.withAttr("data-id", function(value){
+            m("div", {class:"panel-body"}, [
+                m("button", {class:"btn btn-default", onclick: m.withAttr("data-id", function(value){
                                 Hosts.vm.createHost();
                             })}, "New Host"),
-                m("label[for=itemsPerPage]", "Items per Page"),
-                m("input[id=itemsPerPage],[type=number],[step=10]", {onchange: m.withAttr("value", Hosts.vm.pager.itemsPerPage), value: Hosts.vm.pager.itemsPerPage()}),
                 m("div", [Hosts.vm.pager.pagination.$view()]),
-            ]),
-            m("pre", {}, "Hosts selected: ", Hosts.vm.picked().length),
 
-            m("div", {
-                class: "btn-group"
+                m("div", {
+                    class: "btn-group"
+                    }, [
+                    m("button", {
+                      class: "btn btn-default",
+                      config: m.ui.configRadio(Hosts.vm.pickButtons, 'none')
+                    }, ["None"]),
+                    m("button", {
+                      class: "btn btn-default",
+                      config: m.ui.configRadio(Hosts.vm.pickButtons, 'inverse')
+                    }, ["Inverse"]),
+                    m("button", {
+                      class: "btn btn-default",
+                      config: m.ui.configRadio(Hosts.vm.pickButtons, 'all')
+                    }, ["All"])
+                ]),
+
+                m("div", {
+                  class: "btn-group",
+                  config: m.ui.configDropdown()
                 }, [
-                m("button", {
-                  class: "btn",
-                  config: m.ui.configRadio(Hosts.vm.pickButtons, 'none')
-                }, ["None"]),
-                m("button", {
-                  class: "btn",
-                  config: m.ui.configRadio(Hosts.vm.pickButtons, 'inverse')
-                }, ["Inverse"]),
-                m("button", {
-                  class: "btn",
-                  config: m.ui.configRadio(Hosts.vm.pickButtons, 'all')
-                }, ["All"])
+                  m("button", {
+                    type: "button",
+                    class: "btn btn-default dropdown-toggle"
+                  }, [
+                    m("span", {class:"glyphicon glyphicon-cog"}),
+                    m("span", {class: "caret"}),
+                  ]),
+                  m("ul", {
+                    class: "dropdown-menu",
+                    role: "menu"
+                  }, [
+                    m("li", [
+                        m("a", {
+                            onclick: Hosts.vm.showAllColumns,
+                        }, ["Show all Columns"]),
+                    ]),
+                    (function(){
+                        var cols = [];
+                        Object.keys(Hosts.vm.columns).forEach(function(column){
+                            cols.push(
+                                m("li", [m("a", [
+                                    m("label[for=colShow"+column+"]", [
+                                        m("input[id=colShow"+column+"],[type=checkbox]", {onchange: m.withAttr("checked", Hosts.vm.columns[column]), checked: Hosts.vm.columns[column]()}),
+                                    ], column)
+                                ])
+                                ])
+                            );
+                        });
+
+                        return cols;
+                    })(),
+                    m("li", {
+                        class: "divider"
+                    }),
+                    m("li", [
+                        m("label[for=itemsPerPage]", "Items per Page"),
+                        m("input[id=itemsPerPage],[type=number],[step=10]", {onchange: m.withAttr("value", Hosts.vm.pager.itemsPerPage), value: Hosts.vm.pager.itemsPerPage()}),
+                    ]),
+                  ])
+                ]),
             ]),
+            m("div", {}, "Hosts selected: ", Hosts.vm.picked().length),
+            m("label[for=listFilter]", "Search"),
+            m("input[id=listFilter]", {onchange: m.withAttr("value", Hosts.vm.listFilter), value: Hosts.vm.listFilter()}),
 
 
             m("table[class=table table-condensed table-striped table-hover]", sorts(Hosts.list()), [
                 m("thead", [
                     m("tr", [
                         m("th[data-sort-by=state-picked]", {}, 'Pick'),
-                        m("th[data-sort-by=ip]", {}, 'IP'),
-                        m("th[data-sort-by=domain]", {}, 'Domain'),
-                        m("th[data-sort-by=host]", {}, 'Host'),
-                        m("th[data-sort-by=hostname]", {}, 'Hostname'),
-                        m("th[data-sort-by=created]", {}, 'Created'),
-                        m("th[data-sort-by=updated]", {}, 'Updated'),
+                        m("th", {}, 'Options'),
+                        (function(){
+                            var header = [];
+                            header.push(Hosts.vm.columns.ip() ? m("th[data-sort-by=ip]", {}, 'IP') : undefined);
+                            header.push(Hosts.vm.columns.domain() ? m("th[data-sort-by=domain]", {}, 'Domain') : undefined);
+                            header.push(Hosts.vm.columns.host() ? m("th[data-sort-by=host]", {}, 'Host') : undefined);
+                            header.push(Hosts.vm.columns.hostname() ? m("th[data-sort-by=hostname]", {}, 'Hostname') : undefined);
+                            header.push(Hosts.vm.columns.created() ? m("th[data-sort-by=created]", {}, 'Created') : undefined);
+                            header.push(Hosts.vm.columns.updated() ? m("th[data-sort-by=updated]", {}, 'Updated') : undefined);
+
+                            return header;
+                        })(),
                     ])
                 ]),
                 m("tbody", [
@@ -799,12 +930,7 @@ Hosts.view = function(ctrl) {
                     Hosts.vm.pager.itemsPerPage() * Hosts.vm.pager.currentPage(),
                     Hosts.vm.pager.itemsPerPage() * (Hosts.vm.pager.currentPage() + 1))
                 .map(function(host, i) {
-                    return m("tr[data-id="+host.d.ip()+"]", {
-                            class: (host == Host.vm.host) ? 'success' : '',
-                            onclick: function(e) {
-                                Host.vm.select(host);
-                            }
-                        }, [
+                    return m("tr", {}, [
                         m("td", {}, m("input[type=checkbox]", {
                             onclick: function(e) {
                                 Hosts.vm.pick(host)
@@ -812,12 +938,28 @@ Hosts.view = function(ctrl) {
                             },
                             checked: Hosts.vm.isPicked(host)})
                             ),
-                        m("td", {}, host.d.ip()),
-                        m("td", {}, host.d.domain()),
-                        m("td", {}, host.d.host()),
-                        m("td", {}, host.d.hostname()),
-                        m("td", {}, dateFormat(Date.parse(host.d.created()))),
-                        m("td", {}, dateFormat(Date.parse(host.d.updated()))),
+                        m("td", {}, [
+                            m("button", {
+                                onclick: function(e) {
+                                    Host.vm.edit(host, true);
+                                },
+                                class: "btn btn-default btn-xs"
+                            }, [
+                                m("span", {class: "glyphicon glyphicon-pencil"})
+                            ]),
+                            Host.vm.enableButton(host),
+                        ]),
+                        (function(){
+                            var body = [];
+                            body.push(Hosts.vm.columns.ip() ? m("td", {}, host.d.ip()) : undefined);
+                            body.push(Hosts.vm.columns.domain() ? m("td", {}, host.d.domain()) : undefined);
+                            body.push(Hosts.vm.columns.host() ? m("td", {}, host.d.host()) : undefined);
+                            body.push(Hosts.vm.columns.hostname() ? m("td", {}, host.d.hostname()) : undefined);
+                            body.push(Hosts.vm.columns.created() ? m("td", {}, dateFormat(Date.parse(host.d.created()))) : undefined);
+                            body.push(Hosts.vm.columns.updated() ? m("td", {}, dateFormat(Date.parse(host.d.updated()))) : undefined);
+
+                            return body;
+                        })(),
                     ])
                 })
           ])
