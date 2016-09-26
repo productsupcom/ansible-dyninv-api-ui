@@ -95,7 +95,7 @@ Host.vm = (function () {
         open = typeof open !== "undefined" ? open : false;
         vm.host = host;
         if (open) {
-            Host.vm.openModal();
+            Host.vm.openModal("lg");
         }
     };
     vm.openModal = function (size) {

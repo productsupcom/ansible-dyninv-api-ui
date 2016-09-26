@@ -20,39 +20,65 @@ HostModal.view = function (ctrl) {
             m("div", { class: "panel panel-info" }, [
                 m("div", { class: "panel-heading" }, [m("h3", { class: "panel-title" }, "Information")]),
                 m("div", { class: "panel-body" }, [
-                    m("div", { class: "checkbox" }, [m("label[for=enabled]", [m("input[id=enabled],[type=checkbox]", {
-                                onchange: m.withAttr("checked", Host.vm.host.d.enabled),
-                                checked: Host.vm.host.d.enabled()
-                            })], "Enabled")]),
-                    m("div", { class: "form-group" }, [
-                        m("label[for=ip]", "IP"),
-                        m("input[id=ip],[class=form-control]", {
-                            onchange: m.withAttr("value", Host.vm.host.d.ip),
-                            value: Host.vm.host.d.ip()
-                        })
+                    m("div", { class: "form-horizontal"}, [
+                        m("div", { class: "form-group" }, [
+                            m("div", { class: "col-sm-offset-2 col-sm-10"}, [
+                            m("div", { class: "checkbox" }, [
+                                m("label", {for:"enabled"}, [
+                                    m("input", {
+                                        id:"enabled",
+                                        type:"checkbox",
+                                        onchange: m.withAttr("checked", Host.vm.host.d.enabled),
+                                        checked: Host.vm.host.d.enabled()
+                                    })], "Enabled")]),
+                            ]),
+                        ]),
+                        m("div", { class: "form-group" }, [
+                            m("label", {for:"ip", class: "col-sm-2 control-label"}, "IP"),
+                            m("div", {class:"col-sm-10"}, [
+                            m("input", {
+                                id:"ip",
+                                class:"form-control",
+                                onchange: m.withAttr("value", Host.vm.host.d.ip),
+                                value: Host.vm.host.d.ip()
+                            }),
+                            ]),
+                        ]),
+                         m("div", { class: "form-group" }, [
+                            m("label", {for:"hostname", class: "col-sm-2 control-label"}, "Hostname"),
+                            m("div", {class:"col-sm-10"}, [
+                            m("input", {
+                                id:"hostname",
+                                class:"form-control",
+                                onchange: m.withAttr("value", Host.vm.host.d.hostname),
+                                value: Host.vm.host.d.hostname()
+                            }),
+                            ]),
+                        ]),
+                         m("div", { class: "form-group" }, [
+                            m("label", {for:"host", class: "col-sm-2 control-label"}, "Host"),
+                            m("div", {class:"col-sm-10"}, [
+                            m("input", {
+                                id:"host",
+                                class:"form-control",
+                                onchange: m.withAttr("value", Host.vm.host.d.host),
+                                value: Host.vm.host.d.host()
+                            }),
+                            ]),
+                        ]),
+                         m("div", { class: "form-group" }, [
+                            m("label", {for:"domain", class: "col-sm-2 control-label"}, "Domain"),
+                            m("div", {class:"col-sm-10"}, [
+                            m("input", {
+                                id:"domain",
+                                class:"form-control",
+                                onchange: m.withAttr("value", Host.vm.host.d.domain),
+                                value: Host.vm.host.d.domain()
+                            }),
+                            ]),
+                        ]),
                     ]),
-                    m("div", { class: "form-group" }, [
-                        m("label[for=hostname]", "Hostname"),
-                        m("input[id=hostname],[class=form-control]", {
-                            onchange: m.withAttr("value", Host.vm.host.d.hostname),
-                            value: Host.vm.host.d.hostname()
-                        })
-                    ]),
-                    m("div", { class: "form-group" }, [
-                        m("label[for=host]", "Host"),
-                        m("input[id=host],[class=form-control]", {
-                            onchange: m.withAttr("value", Host.vm.host.d.host),
-                            value: Host.vm.host.d.host()
-                        })
-                    ]),
-                    m("div", { class: "form-group" }, [
-                        m("label[for=domain]", "Domain"),
-                        m("input[id=domain],[class=form-control]", {
-                            onchange: m.withAttr("value", Host.vm.host.d.domain),
-                            value: Host.vm.host.d.domain()
-                        })
-                    ])
-                ])
+                ]),
             ]),
             m("div", { class: "panel panel-info" }, [
                 m("div", { class: "panel-heading" }, [m("h3", { class: "panel-title" }, "Variables")]),
@@ -60,7 +86,7 @@ HostModal.view = function (ctrl) {
             ]),
             m("div", { class: "panel panel-info" }, [
                 m("div", { class: "panel-heading" }, [m("h3", { class: "panel-title" }, "Groups")]),
-                m("div", [m("select[id=groupSelect]", { multiple: "multiple" }, [//, size: Host.vm.groups.length}, [
+                m("div", [m("select[id=groupSelect]", { multiple: "multiple" }, [
                         Host.vm.groups.map(function (group) {
                             return m("option", {
                                 value: group.d.id(),
