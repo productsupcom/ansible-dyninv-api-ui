@@ -1,4 +1,4 @@
-var Host = function(data) {
+var Host = function (data) {
     this.d = {};
     var d = this.d;
     d.id = data ? m.prop(data["@id"]) : m.prop("");
@@ -10,8 +10,8 @@ var Host = function(data) {
     d.updated = data ? m.prop(data.updated) : m.prop("");
     d.ip = data ? m.prop(data.ip) : m.prop("");
     d.groupsArr = data ? m.prop(data.groups || []) : m.prop([]);
-    d.groups = function(){
-        return Groups.list().filter(function(el){
+    d.groups = function () {
+        return Groups.list().filter(function (el) {
             return d.groupsArr().indexOf(el.d.id());
         });
     };
@@ -19,7 +19,6 @@ var Host = function(data) {
     if (d.variables === {}) {
         d.variables([]);
     }
-
     this.editable = [
         "domain",
         "enabled",
@@ -30,8 +29,7 @@ var Host = function(data) {
         "variables"
     ];
 };
-
-Host.prototype.toJSON = function() {
+Host.prototype.toJSON = function () {
     var d = this.d;
     var obj = {
         "@id": d.id(),
@@ -45,25 +43,21 @@ Host.prototype.toJSON = function() {
         "groups": d.groupsArr(),
         "variables": d.variables()
     };
-
-    Object.keys(obj).map(function(property) {
+    Object.keys(obj).map(function (property) {
         if (obj[property] === undefined || obj[property] === "") {
-            if (typeof(property) !== "boolean") {
+            if (typeof property !== "boolean") {
                 delete obj[property];
             }
         }
     });
-
     return obj;
 };
-
-Host.update = function(host) {
+Host.update = function (host) {
     if (!(host instanceof Host)) {
         console.log("Argument needs to be of type Host.", host);
         return;
     }
     console.log(host);
-
     var base = "http://127.0.0.1:8000";
     var url = base + host.d.id();
     m.request({
@@ -71,17 +65,14 @@ Host.update = function(host) {
         url: url,
         data: host,
         type: Host
-    }).then(log)
-    .then(Hosts.replace);
+    }).then(log).then(Hosts.replace);
 };
-
-Host.post = function(host) {
+Host.post = function (host) {
     if (!(host instanceof Host)) {
         console.log("Argument needs to be of type Host.", host);
         return;
     }
     console.log(host);
-
     var base = "http://127.0.0.1:8000";
     var endpoint = "/hosts";
     var url = base + endpoint;
@@ -90,83 +81,67 @@ Host.post = function(host) {
         url: url,
         data: host,
         type: Host
-    }).then(log)
-    .then(Hosts.add);
+    }).then(log).then(Hosts.add);
 };
-
 Host.host = new Host();
-
-Host.vm = (function() {
+Host.vm = (function () {
     var vm = {};
     var jseditor = {};
-    vm.init = function() {
+    vm.init = function () {
         vm.host = Host.host;
     };
-
     vm.groups = Groups.list();
-
-    vm.edit = function(host, open = false) {
+    vm.edit = function (host, open) {
+        open = typeof open !== "undefined" ? open : false;
         vm.host = host;
         if (open) {
             Host.vm.openModal();
         }
     };
-
-    vm.openModal = function(size) {
+    vm.openModal = function (size) {
         vm.modalInstance = m.u.init(m.ui.modal({
             size: size,
-            params: {
-                host: vm.host
-            },
+            params: { host: vm.host },
             module: HostModal,
-            onopen: function(){
+            onopen: function () {
                 // redraw first else it didn"t finish rendering the view yet
                 m.redraw();
                 vm.initJsonEditor();
                 vm.initGroupSelect();
             }
         }));
-
-        vm.modalInstance.result.then(function() {
+        vm.modalInstance.result.then(function () {
             Host.vm.save(Host.vm.host);
-        }, function() {
+        }, function () {
             console.log("Modal dismissed");
         });
     };
-
-    vm.create = function() {
+    vm.create = function () {
         vm.edit(new Host(), true);
     };
-
-    vm.save = function(host) {
+    vm.save = function (host) {
         if (jseditor.editor !== undefined) {
             host.d.variables(jseditor.editor.get());
         }
-
         if (host.d.id()) {
             vm.update(host);
         } else {
             vm.post(host);
         }
     };
-
-    vm.update = function(data) {
+    vm.update = function (data) {
         Host.update(data);
     };
-
-    vm.post = function(data) {
+    vm.post = function (data) {
         Host.post(data);
     };
-
-    vm.inGroup = function(group) {
+    vm.inGroup = function (group) {
         if (vm.host.d.groupsArr().indexOf(group.d.id()) >= 0) {
             return true;
         }
-
         return false;
     };
-
-    vm.modGroup = function(value) {
+    vm.modGroup = function (value) {
         console.log(value);
         if (vm.host.d.groupsArr().indexOf(value) === -1) {
             console.log("adding group", value);
@@ -178,8 +153,7 @@ Host.vm = (function() {
             }));
         }
     };
-
-    vm.initJsonEditor = function() {
+    vm.initJsonEditor = function () {
         /* globals document, JSONEditor */
         if (jseditor.editor !== undefined) {
             jseditor.editor.destroy();
@@ -188,7 +162,6 @@ Host.vm = (function() {
         jseditor.editorContainer = document.getElementById("hostEditorvariables");
         jseditor.editorOptions = {};
         jseditor.editor = new JSONEditor(jseditor.editorContainer, jseditor.editorOptions);
-
         if (vm.host.d.variables() === undefined) {
             vm.host.d.variables({});
         }
@@ -196,9 +169,8 @@ Host.vm = (function() {
         m.endComputation();
         m.redraw();
     };
-
     /* globals $ */
-    vm.initGroupSelect = function() {
+    vm.initGroupSelect = function () {
         var el = $("#groupSelect");
         if (el.hasClass("select2-hidden-accessible")) {
             // redraw to reflect the change, else it can sometimes show the old one
@@ -206,40 +178,36 @@ Host.vm = (function() {
             m.redraw();
         }
         el.select2();
-        el.on("change", function() {
+        el.on("change", function () {
             m.startComputation();
             var groups = el.select2("val");
-
             // simply set the returned array as the new group list
             Host.vm.host.d.groupsArr(groups);
-
             m.endComputation();
             m.redraw();
         });
     };
-
-    vm.enableButton = function(host) {
+    vm.enableButton = function (host) {
         if (host.d.enabled()) {
             return m("button", {
-                class:"btn btn-default btn-xs",
-                onclick: function() {host.d.enabled(false); vm.save(host);},
-            }, [
-                m("span", {class:"glyphicon glyphicon-pause"})
-            ]);
-
+                class: "btn btn-default btn-xs",
+                onclick: function () {
+                    host.d.enabled(false);
+                    vm.save(host);
+                }
+            }, [m("span", { class: "glyphicon glyphicon-pause" })]);
         } else {
             return m("button", {
-                class:"btn btn-default btn-xs",
-                onclick: function() {host.d.enabled(true); vm.save(host);},
-            }, [
-                m("span", {class:"glyphicon glyphicon-play"})
-            ]);
+                class: "btn btn-default btn-xs",
+                onclick: function () {
+                    host.d.enabled(true);
+                    vm.save(host);
+                }
+            }, [m("span", { class: "glyphicon glyphicon-play" })]);
         }
     };
-
     return vm;
-}());
-
-Host.controller = function() {
+})();
+Host.controller = function () {
     Host.vm.init();
 };
