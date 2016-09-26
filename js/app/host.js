@@ -9,25 +9,25 @@ var Host = function(data) {
     d.hostname = data ? m.prop(data.hostname) : m.prop("");
     d.updated = data ? m.prop(data.updated) : m.prop("");
     d.ip = data ? m.prop(data.ip) : m.prop("");
-    d.groups_arr = data ? m.prop(data.groups || []) : m.prop([]);
+    d.groupsArr = data ? m.prop(data.groups || []) : m.prop([]);
     d.groups = function(){
         return Groups.list().filter(function(el){
-            return d.groups_arr().indexOf(el.d.id());
+            return d.groupsArr().indexOf(el.d.id());
         });
-    }
+    };
     d.variables = data ? m.prop(data.variables) : m.prop({});
-    if (d.variables == {}) {
+    if (d.variables === {}) {
         d.variables([]);
     }
 
     this.editable = [
-        'domain',
-        'enabled',
-        'host',
-        'hostname',
-        'ip',
-        'groups_arr',
-        'variables'
+        "domain",
+        "enabled",
+        "host",
+        "hostname",
+        "ip",
+        "groupsArr",
+        "variables"
     ];
 };
 
@@ -42,11 +42,11 @@ Host.prototype.toJSON = function() {
         "hostname": d.hostname(),
         "updated": d.updated(),
         "ip": d.ip(),
-        "groups": d.groups_arr(),
+        "groups": d.groupsArr(),
         "variables": d.variables()
     };
 
-    Object.keys(obj).map(function(property, index) {
+    Object.keys(obj).map(function(property) {
         if (obj[property] === undefined || obj[property] === "") {
             if (typeof(property) !== "boolean") {
                 delete obj[property];
@@ -59,13 +59,13 @@ Host.prototype.toJSON = function() {
 
 Host.update = function(host) {
     if (!(host instanceof Host)) {
-        console.log('Argument needs to be of type Host.', host);
+        console.log("Argument needs to be of type Host.", host);
         return;
     }
     console.log(host);
 
     var base = "http://127.0.0.1:8000";
-    url = base + host.d.id();
+    var url = base + host.d.id();
     m.request({
         method: "PUT",
         url: url,
@@ -73,18 +73,18 @@ Host.update = function(host) {
         type: Host
     }).then(log)
     .then(Hosts.replace);
-}
+};
 
 Host.post = function(host) {
     if (!(host instanceof Host)) {
-        console.log('Argument needs to be of type Host.', host);
+        console.log("Argument needs to be of type Host.", host);
         return;
     }
     console.log(host);
 
     var base = "http://127.0.0.1:8000";
-    var endpoint = "/hosts"
-    url = base + endpoint;
+    var endpoint = "/hosts";
+    var url = base + endpoint;
     m.request({
         method: "POST",
         url: url,
@@ -92,15 +92,16 @@ Host.post = function(host) {
         type: Host
     }).then(log)
     .then(Hosts.add);
-}
+};
 
 Host.host = new Host();
 
 Host.vm = (function() {
-    var vm = {}
+    var vm = {};
+    var jseditor = {};
     vm.init = function() {
         vm.host = Host.host;
-    }
+    };
 
     vm.groups = Groups.list();
 
@@ -109,7 +110,7 @@ Host.vm = (function() {
         if (open) {
             Host.vm.openModal();
         }
-    }
+    };
 
     vm.openModal = function(size) {
         vm.modalInstance = m.u.init(m.ui.modal({
@@ -118,8 +119,8 @@ Host.vm = (function() {
                 host: vm.host
             },
             module: HostModal,
-            onopen: function(modalCtrl){
-                // redraw first else it didn't finish rendering the view yet
+            onopen: function(){
+                // redraw first else it didn"t finish rendering the view yet
                 m.redraw();
                 vm.initJsonEditor();
                 vm.initGroupSelect();
@@ -129,16 +130,16 @@ Host.vm = (function() {
         vm.modalInstance.result.then(function() {
             Host.vm.save(Host.vm.host);
         }, function() {
-            console.log('Modal dismissed');
+            console.log("Modal dismissed");
         });
     };
 
     vm.create = function() {
         vm.edit(new Host(), true);
-    }
+    };
 
     vm.save = function(host) {
-        if (jseditor.editor != undefined) {
+        if (jseditor.editor !== undefined) {
             host.d.variables(jseditor.editor.get());
         }
 
@@ -147,40 +148,40 @@ Host.vm = (function() {
         } else {
             vm.post(host);
         }
-    }
+    };
 
     vm.update = function(data) {
         Host.update(data);
-    }
+    };
 
     vm.post = function(data) {
         Host.post(data);
-    }
+    };
 
     vm.inGroup = function(group) {
-        if (vm.host.d.groups_arr().indexOf(group.d.id()) >= 0) {
+        if (vm.host.d.groupsArr().indexOf(group.d.id()) >= 0) {
             return true;
         }
 
         return false;
-    }
+    };
 
     vm.modGroup = function(value) {
         console.log(value);
-        if (vm.host.d.groups_arr().indexOf(value) === -1) {
-            console.log('adding group', value);
-            vm.host.d.groups_arr().push(value);
+        if (vm.host.d.groupsArr().indexOf(value) === -1) {
+            console.log("adding group", value);
+            vm.host.d.groupsArr().push(value);
         } else {
-            console.log('removing group', value);
-            vm.host.d.groups_arr(vm.host.d.groups_arr().filter(function (el) {
+            console.log("removing group", value);
+            vm.host.d.groupsArr(vm.host.d.groupsArr().filter(function (el) {
                 return el !== value;
             }));
         }
-    }
+    };
 
-    var jseditor = {}
     vm.initJsonEditor = function() {
-        if (jseditor.editor != undefined) {
+        /* globals document, JSONEditor */
+        if (jseditor.editor !== undefined) {
             jseditor.editor.destroy();
         }
         m.startComputation();
@@ -188,14 +189,15 @@ Host.vm = (function() {
         jseditor.editorOptions = {};
         jseditor.editor = new JSONEditor(jseditor.editorContainer, jseditor.editorOptions);
 
-        if (vm.host.d.variables() == undefined) {
+        if (vm.host.d.variables() === undefined) {
             vm.host.d.variables({});
         }
         jseditor.editor.set(vm.host.d.variables());
         m.endComputation();
         m.redraw();
-    }
+    };
 
+    /* globals $ */
     vm.initGroupSelect = function() {
         var el = $("#groupSelect");
         if (el.hasClass("select2-hidden-accessible")) {
@@ -204,40 +206,40 @@ Host.vm = (function() {
             m.redraw();
         }
         el.select2();
-        el.on("change", function(e) {
+        el.on("change", function() {
             m.startComputation();
             var groups = el.select2("val");
 
             // simply set the returned array as the new group list
-            Host.vm.host.d.groups_arr(groups);
+            Host.vm.host.d.groupsArr(groups);
 
             m.endComputation();
             m.redraw();
         });
-    }
+    };
 
     vm.enableButton = function(host) {
         if (host.d.enabled()) {
-            return m('button', {
+            return m("button", {
                 class:"btn btn-default btn-xs",
-                onclick: function() {host.d.enabled(false); vm.save(host)},
+                onclick: function() {host.d.enabled(false); vm.save(host);},
             }, [
                 m("span", {class:"glyphicon glyphicon-pause"})
             ]);
 
         } else {
-            return m('button', {
+            return m("button", {
                 class:"btn btn-default btn-xs",
-                onclick: function() {host.d.enabled(true); vm.save(host)},
+                onclick: function() {host.d.enabled(true); vm.save(host);},
             }, [
                 m("span", {class:"glyphicon glyphicon-play"})
             ]);
         }
-    }
+    };
 
-    return vm
-}())
+    return vm;
+}());
 
 Host.controller = function() {
     Host.vm.init();
-}
+};
