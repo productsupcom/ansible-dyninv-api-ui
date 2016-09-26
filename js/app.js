@@ -701,6 +701,7 @@ Hosts.vm = (function() {
         if (vm.listFilter() == "") {
             return Hosts.list();
         }
+        Hosts.vm.pager.currentPage(0);
         return Hosts.list().filter(function(host, i){
             var searchable = ['ip', 'domain', 'host', 'hostname', 'created', 'updated'];
             var found = false;
@@ -724,7 +725,9 @@ Hosts.vm = (function() {
                 Hosts.picked([]);
             }
             if (toggle == 'all') {
-                Hosts.picked(Hosts.list());
+                Hosts.vm.list().forEach(function(host) {
+                    Hosts.pick(host);
+                });
             }
             if (toggle == 'inverse') {
                 var newlist = Hosts.list();
@@ -964,9 +967,21 @@ var ansible = {};
 ansible.controller = function() {
     var ctrl = this;
 
+    ctrl.visible = m.prop('hosts');
+
     ctrl.list = new Hosts.controller();
     //ctrl.host = new Host.controller();
     ctrl.groupList = new Groups.controller();
+
+    ctrl.activeView = function(){
+        if (ctrl.visible() == 'hosts') {
+            return Hosts.view(ctrl.list);
+        }
+
+        if (ctrl.visible() == 'groups') {
+            return Groups.view(ctrl.groupList);
+        }
+    }
 }
 
 ansible.view = function(ctrl) {
@@ -976,10 +991,10 @@ ansible.view = function(ctrl) {
             m("div", {id:"navbar"}, [
                 m("ul", {class:"nav navbar-nav"}, [
                     m("li", {}, [
-                        m("a", {}, ["Hosts"]),
+                        m("a", {"data-visible":"hosts", onclick: m.withAttr("data-visible", ctrl.visible)}, ["Hosts"]),
                     ]),
                     m("li", {}, [
-                        m("a", {}, ["Groups"]),
+                        m("a", {"data-visible":"groups", onclick: m.withAttr("data-visible", ctrl.visible)}, ["Groups"]),
                     ]),
                 ]),
             ]),
@@ -988,7 +1003,7 @@ ansible.view = function(ctrl) {
     m("div", {class:"container-fluid"}, [
         m("div", {class:"row-fluid"}, [
             m("div", {class:"col-md-12"}, [
-                Hosts.view(ctrl.list)
+                ctrl.activeView()
             ])
         ])
     ]),
