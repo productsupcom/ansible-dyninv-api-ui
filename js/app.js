@@ -235,10 +235,6 @@ var Host = function(data) {
         'groups_arr',
         'variables'
     ];
-
-    this.state = {};
-    var state = this.state;
-    state.visible = m.prop(true);
 };
 
 Host.prototype.toJSON = function() {
@@ -904,7 +900,7 @@ Hosts.view = function(ctrl) {
             m("table[class=table table-condensed table-striped table-hover]", sorts(Hosts.list()), [
                 m("thead", [
                     m("tr", [
-                        m("th[data-sort-by=state-picked]", {}, 'Pick'),
+                        m("th", {}, 'Pick'),
                         m("th", {}, 'Options'),
                         (function(){
                             var header = [];
