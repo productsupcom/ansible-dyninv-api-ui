@@ -20,13 +20,28 @@ var Host = function (data) {
         d.variables([]);
     }
     this.editable = [
-        "domain",
-        "enabled",
-        "host",
-        "hostname",
-        "ip",
-        "groupsArr",
-        "variables"
+        {"name":"Enabled",
+            "object":"enabled",
+            "type":"boolean"},
+        {"name":"Domain",
+            "object":"domain",
+            "type":"string"},
+        {"name":"Host",
+            "object":"host",
+            "type":"string"},
+        {"name":"Hostname",
+            "object":"hostname",
+            "type":"string"},
+        {"name":"IP Address",
+            "object":"ip",
+            "type":"string"},
+        {"name":"Groups",
+            "object":"groups",
+            "method":"inGroup",
+            "type":"select2"},
+        {"name":"Variables",
+            "object":"variables",
+            "type":"jsoneditor"}
     ];
 };
 Host.prototype.toJSON = function () {
@@ -86,6 +101,7 @@ Host.post = function (host) {
 Host.host = new Host();
 Host.vm = (function () {
     var vm = {};
+    vm.editorTitle = "Edit Host";
     var jseditor = {};
     vm.init = function () {
         vm.host = Host.host;
@@ -101,8 +117,11 @@ Host.vm = (function () {
     vm.openModal = function (size) {
         vm.modalInstance = m.u.init(m.ui.modal({
             size: size,
-            params: { host: vm.host },
-            module: HostModal,
+            params: {
+                vm: vm,
+                object: "host"
+            },
+            module: EditModal,
             onopen: function () {
                 // redraw first else it didn"t finish rendering the view yet
                 m.redraw();
@@ -159,32 +178,42 @@ Host.vm = (function () {
             jseditor.editor.destroy();
         }
         m.startComputation();
-        jseditor.editorContainer = document.getElementById("hostEditorvariables");
-        jseditor.editorOptions = {};
-        jseditor.editor = new JSONEditor(jseditor.editorContainer, jseditor.editorOptions);
-        if (vm.host.d.variables() === undefined) {
-            vm.host.d.variables({});
-        }
-        jseditor.editor.set(vm.host.d.variables());
+        vm.host.editable.filter(function(el){
+            return el.type === "jsoneditor";
+        }).forEach(function(editable) {
+            console.log(editable);
+            jseditor.editorContainer = document.getElementById(editable.type+editable.object);
+            console.log(jseditor);
+            jseditor.editorOptions = {};
+            jseditor.editor = new JSONEditor(jseditor.editorContainer, jseditor.editorOptions);
+            if (vm.host.d[editable.object]() === undefined) {
+                vm.host.d[editable.object]({});
+            }
+            jseditor.editor.set(vm.host.d[editable.object]());
+        });
         m.endComputation();
         m.redraw();
     };
     /* globals $ */
     vm.initGroupSelect = function () {
-        var el = $("#groupSelect");
-        if (el.hasClass("select2-hidden-accessible")) {
-            // redraw to reflect the change, else it can sometimes show the old one
-            el.select2("destroy");
-            m.redraw();
-        }
-        el.select2();
-        el.on("change", function () {
-            m.startComputation();
-            var groups = el.select2("val");
-            // simply set the returned array as the new group list
-            Host.vm.host.d.groupsArr(groups);
-            m.endComputation();
-            m.redraw();
+        vm.host.editable.filter(function(el){
+            return el.type === "select2";
+        }).forEach(function(editable) {
+            var el = $("#"+editable.type+editable.object);
+            if (el.hasClass("select2-hidden-accessible")) {
+                // redraw to reflect the change, else it can sometimes show the old one
+                el.select2("destroy");
+                m.redraw();
+            }
+            el.select2();
+            el.on("change", function () {
+                m.startComputation();
+                var groups = el.select2("val");
+                // simply set the returned array as the new group list
+                Host.vm.host.d.groupsArr(groups);
+                m.endComputation();
+                m.redraw();
+            });
         });
     };
     vm.enableButton = function (host) {
@@ -209,5 +238,7 @@ Host.vm = (function () {
     return vm;
 })();
 Host.controller = function () {
+    var ctrl = this;
     Host.vm.init();
+    ctrl.vm = Host.vm;
 };
