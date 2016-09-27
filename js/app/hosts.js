@@ -131,7 +131,7 @@ Hosts.vm = (function () {
         if (vm.listFilter() === "") {
             return Hosts.list();
         }
-        Hosts.vm.pager.currentPage(0);
+        vm.pager.currentPage(0);
         return Hosts.list().filter(function (host) {
             var searchable = [
                 "ip",
@@ -159,7 +159,7 @@ Hosts.vm = (function () {
                 Hosts.picked([]);
             }
             if (toggle === "all") {
-                Hosts.vm.list().forEach(function (host) {
+                vm.list().forEach(function (host) {
                     Hosts.pick(host);
                 });
             }
@@ -230,7 +230,7 @@ Hosts.vm = (function () {
         return columns;
     })();
     vm.showAllColumns = function () {
-        Object.keys(Hosts.vm.columns).forEach(function (column) {
+        Object.keys(vm.columns).forEach(function (column) {
             vm.columns[column](true);
         });
         m.redraw();
@@ -238,32 +238,35 @@ Hosts.vm = (function () {
     return vm;
 })();
 Hosts.controller = function () {
-    var vm = Hosts.vm;
-    vm.init();
+    var ctrl = this;
+    ctrl.vm = Hosts.vm;
+    ctrl.vm.init();
 };
-Hosts.view = function () {
+Hosts.view = function (ctrl) {
+    var vm = ctrl.vm;
+    console.log(ctrl);
     return m("div", { class: "panel panel-default" }, [
         m("div", { class: "panel-heading" }, [m("h3", { class: "panel-title" }, "Available Hosts")]),
         m("div", { class: "panel-body" }, [
             m("button", {
                 class: "btn btn-default",
                 onclick: m.withAttr("data-id", function () {
-                    Hosts.vm.createHost();
+                    vm.createHost();
                 })
             }, "New Host"),
-            m("div", [Hosts.vm.pager.pagination.$view()]),
+            m("div", [vm.pager.pagination.$view()]),
             m("div", { class: "btn-group" }, [
                 m("button", {
                     class: "btn btn-default",
-                    config: m.ui.configRadio(Hosts.vm.pickButtons, "none")
+                    config: m.ui.configRadio(vm.pickButtons, "none")
                 }, ["None"]),
                 m("button", {
                     class: "btn btn-default",
-                    config: m.ui.configRadio(Hosts.vm.pickButtons, "inverse")
+                    config: m.ui.configRadio(vm.pickButtons, "inverse")
                 }, ["Inverse"]),
                 m("button", {
                     class: "btn btn-default",
-                    config: m.ui.configRadio(Hosts.vm.pickButtons, "all")
+                    config: m.ui.configRadio(vm.pickButtons, "all")
                 }, ["All"])
             ]),
             m("div", {
@@ -281,13 +284,13 @@ Hosts.view = function () {
                     class: "dropdown-menu",
                     role: "menu"
                 }, [
-                    m("li", [m("a", { onclick: Hosts.vm.showAllColumns }, ["Show all Columns"])]),
+                    m("li", [m("a", { onclick: vm.showAllColumns }, ["Show all Columns"])]),
                     (function () {
                         var cols = [];
-                        Object.keys(Hosts.vm.columns).forEach(function (column) {
+                        Object.keys(vm.columns).forEach(function (column) {
                             cols.push(m("li", [m("a", [m("label[for=colShow" + column + "]", [m("input[id=colShow" + column + "],[type=checkbox]", {
-                                            onchange: m.withAttr("checked", Hosts.vm.columns[column]),
-                                            checked: Hosts.vm.columns[column]()
+                                            onchange: m.withAttr("checked", vm.columns[column]),
+                                            checked: vm.columns[column]()
                                         })], column)])]));
                         });
                         return cols;
@@ -296,18 +299,18 @@ Hosts.view = function () {
                     m("li", [
                         m("label[for=itemsPerPage]", "Items per Page"),
                         m("input[id=itemsPerPage],[type=number],[step=10]", {
-                            onchange: m.withAttr("value", Hosts.vm.pager.itemsPerPage),
-                            value: Hosts.vm.pager.itemsPerPage()
+                            onchange: m.withAttr("value", vm.pager.itemsPerPage),
+                            value: vm.pager.itemsPerPage()
                         })
                     ])
                 ])
             ])
         ]),
-        m("div", {}, "Hosts selected: ", Hosts.vm.picked().length),
+        m("div", {}, "Hosts selected: ", vm.picked().length),
         m("label[for=listFilter]", "Search"),
         m("input[id=listFilter]", {
-            onchange: m.withAttr("value", Hosts.vm.listFilter),
-            value: Hosts.vm.listFilter()
+            onchange: m.withAttr("value", vm.listFilter),
+            value: vm.listFilter()
         }),
         m("table[class=table table-condensed table-striped table-hover]", sorts(Hosts.list()), [
             m("thead", [m("tr", [
@@ -315,23 +318,23 @@ Hosts.view = function () {
                     m("th", {}, "Options"),
                     (function () {
                         var header = [];
-                        header.push(Hosts.vm.columns.ip() ? m("th[data-sort-by=ip]", {}, "IP") : undefined);
-                        header.push(Hosts.vm.columns.domain() ? m("th[data-sort-by=domain]", {}, "Domain") : undefined);
-                        header.push(Hosts.vm.columns.host() ? m("th[data-sort-by=host]", {}, "Host") : undefined);
-                        header.push(Hosts.vm.columns.hostname() ? m("th[data-sort-by=hostname]", {}, "Hostname") : undefined);
-                        header.push(Hosts.vm.columns.created() ? m("th[data-sort-by=created]", {}, "Created") : undefined);
-                        header.push(Hosts.vm.columns.updated() ? m("th[data-sort-by=updated]", {}, "Updated") : undefined);
+                        header.push(vm.columns.ip() ? m("th[data-sort-by=ip]", {}, "IP") : undefined);
+                        header.push(vm.columns.domain() ? m("th[data-sort-by=domain]", {}, "Domain") : undefined);
+                        header.push(vm.columns.host() ? m("th[data-sort-by=host]", {}, "Host") : undefined);
+                        header.push(vm.columns.hostname() ? m("th[data-sort-by=hostname]", {}, "Hostname") : undefined);
+                        header.push(vm.columns.created() ? m("th[data-sort-by=created]", {}, "Created") : undefined);
+                        header.push(vm.columns.updated() ? m("th[data-sort-by=updated]", {}, "Updated") : undefined);
                         return header;
                     })()
                 ])]),
-            m("tbody", [Hosts.vm.list().slice(Hosts.vm.pager.itemsPerPage() * Hosts.vm.pager.currentPage(), Hosts.vm.pager.itemsPerPage() * (Hosts.vm.pager.currentPage() + 1)).map(function (host) {
+            m("tbody", [vm.list().slice(vm.pager.itemsPerPage() * vm.pager.currentPage(), vm.pager.itemsPerPage() * (vm.pager.currentPage() + 1)).map(function (host) {
                     return m("tr", {}, [
                         m("td", {}, m("input[type=checkbox]", {
                             onclick: function (e) {
-                                Hosts.vm.pick(host);
+                                vm.pick(host);
                                 e.stopImmediatePropagation();
                             },
-                            checked: Hosts.vm.isPicked(host)
+                            checked: vm.isPicked(host)
                         })),
                         m("td", {}, [
                             m("button", {
@@ -344,13 +347,13 @@ Hosts.view = function () {
                         ]),
                         (function () {
                             var body = [];
-                            body.push(Hosts.vm.columns.ip() ? m("td", {}, host.d.ip()) : undefined);
-                            body.push(Hosts.vm.columns.domain() ? m("td", {}, host.d.domain()) : undefined);
-                            body.push(Hosts.vm.columns.host() ? m("td", {}, host.d.host()) : undefined);
-                            body.push(Hosts.vm.columns.hostname() ? m("td", {}, host.d.hostname()) : undefined);
+                            body.push(vm.columns.ip() ? m("td", {}, host.d.ip()) : undefined);
+                            body.push(vm.columns.domain() ? m("td", {}, host.d.domain()) : undefined);
+                            body.push(vm.columns.host() ? m("td", {}, host.d.host()) : undefined);
+                            body.push(vm.columns.hostname() ? m("td", {}, host.d.hostname()) : undefined);
                             /* globals dateFormat */
-                            body.push(Hosts.vm.columns.created() ? m("td", {}, dateFormat(Date.parse(host.d.created()))) : undefined);
-                            body.push(Hosts.vm.columns.updated() ? m("td", {}, dateFormat(Date.parse(host.d.updated()))) : undefined);
+                            body.push(vm.columns.created() ? m("td", {}, dateFormat(Date.parse(host.d.created()))) : undefined);
+                            body.push(vm.columns.updated() ? m("td", {}, dateFormat(Date.parse(host.d.updated()))) : undefined);
                             return body;
                         })()
                     ]);
