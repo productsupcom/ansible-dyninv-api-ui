@@ -14,8 +14,10 @@ EditModal.controller = function (params) {
     };
 };
 EditModal.view = function (ctrl) {
+    var vm = ctrl.params.vm;
+    var object = ctrl.params.object;
     return m("div", [
-        m("div", { class: "modal-header" }, [m("h3", { class: "modal-title" }, [ctrl.params.vm.editorTitle])]),
+        m("div", { class: "modal-header" }, [m("h3", { class: "modal-title" }, [vm.editorTitle])]),
         m("div", { class: "modal-body" }, [
             m("div", { class: "panel panel-info" }, [
                 m("div", { class: "panel-heading" }, [m("h3", { class: "panel-title" }, "Information")]),
@@ -25,7 +27,7 @@ EditModal.view = function (ctrl) {
                         (function(){
                             var form = [];
 
-                            ctrl.params.vm[ctrl.params.object].editable.filter(function(el){
+                            vm[object].editable.filter(function(el){
                                 return el.type === "string" || el.type === "boolean";
                             }).forEach(function(editable){
                                 if (editable.type === "string") {
@@ -35,8 +37,8 @@ EditModal.view = function (ctrl) {
                                         m("input", {
                                             id:editable.object,
                                             class:"form-control",
-                                            onchange: m.withAttr("value", ctrl.params.vm[ctrl.params.object].d[editable.object]),
-                                            value: ctrl.params.vm[ctrl.params.object].d[editable.object]()
+                                            onchange: m.withAttr("value", vm[object].d[editable.object]),
+                                            value: vm[object].d[editable.object]()
                                         }),
                                         ]),
                                     ]));
@@ -49,8 +51,8 @@ EditModal.view = function (ctrl) {
                                                 m("input", {
                                                     id:editable.object,
                                                     type:"checkbox",
-                                                    onchange: m.withAttr("checked", ctrl.params.vm[ctrl.params.object].d[editable.object]),
-                                                    checked: ctrl.params.vm[ctrl.params.object].d[editable.object]()
+                                                    onchange: m.withAttr("checked", vm[object].d[editable.object]),
+                                                    checked: vm[object].d[editable.object]()
                                                 })], editable.name)]),
                                         ]),
                                     ]));
@@ -64,7 +66,7 @@ EditModal.view = function (ctrl) {
             ]),
             (function(){
                 var form = [];
-                ctrl.params.vm[ctrl.params.object].editable.filter(function(el){
+                vm[object].editable.filter(function(el){
                     return el.type !== "string" && el.type !== "boolean";
                 }).forEach(function(editable){
                     if (editable.type === "jsoneditor") {
@@ -78,10 +80,10 @@ EditModal.view = function (ctrl) {
                         form.push(m("div", { class: "panel panel-info" }, [
                             m("div", { class: "panel-heading" }, [m("h3", { class: "panel-title" }, editable.name)]),
                             m("div", [m("select", {id: editable.type+editable.object, multiple: "multiple" }, [
-                               ctrl.params.vm[editable.object].map(function (el) {
+                               vm[editable.object].map(function (el) {
                                    return m("option", {
                                        value: el.d.id(),
-                                       selected: ctrl.params.vm[editable.method](el)
+                                       selected: vm[editable.method](el)
                                    }, el.d.name());
                                })])])
                         ]));

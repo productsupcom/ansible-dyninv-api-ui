@@ -244,7 +244,6 @@ Hosts.controller = function () {
 };
 Hosts.view = function (ctrl) {
     var vm = ctrl.vm;
-    console.log(ctrl);
     return m("div", { class: "panel panel-default" }, [
         m("div", { class: "panel-heading" }, [m("h3", { class: "panel-title" }, "Available Hosts")]),
         m("div", { class: "panel-body" }, [
