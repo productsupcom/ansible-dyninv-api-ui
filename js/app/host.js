@@ -19,27 +19,46 @@ var Host = function (data) {
     if (d.variables === {}) {
         d.variables([]);
     }
-    this.editable = [
+    this.columns = [
+        {"name":"ID",
+            "editable": false,
+            "object":"id",
+            "type":"integer"},
+        {"name":"Created",
+            "editable": false,
+            "object":"created",
+            "type":"datetime"},
+        {"name":"Updated",
+            "editable": false,
+            "object":"updated",
+            "type":"datetime"},
         {"name":"Enabled",
+            "editable": true,
             "object":"enabled",
             "type":"boolean"},
         {"name":"Domain",
+            "editable": true,
             "object":"domain",
             "type":"string"},
         {"name":"Host",
+            "editable": true,
             "object":"host",
             "type":"string"},
         {"name":"Hostname",
+            "editable": true,
             "object":"hostname",
             "type":"string"},
         {"name":"IP Address",
+            "editable": true,
             "object":"ip",
             "type":"string"},
         {"name":"Groups",
+            "editable": true,
             "object":"groups",
             "method":"inGroup",
             "type":"select2"},
         {"name":"Variables",
+            "editable": true,
             "object":"variables",
             "type":"jsoneditor"}
     ];
@@ -178,7 +197,7 @@ Host.vm = (function () {
             jseditor.editor.destroy();
         }
         m.startComputation();
-        vm.host.editable.filter(function(el){
+        vm.host.columns.filter(function(el){
             return el.type === "jsoneditor";
         }).forEach(function(editable) {
             console.log(editable);
@@ -196,7 +215,7 @@ Host.vm = (function () {
     };
     /* globals $ */
     vm.initGroupSelect = function () {
-        vm.host.editable.filter(function(el){
+        vm.host.columns.filter(function(el){
             return el.type === "select2";
         }).forEach(function(editable) {
             var el = $("#"+editable.type+editable.object);

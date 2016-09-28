@@ -27,7 +27,9 @@ EditModal.view = function (ctrl) {
                         (function(){
                             var form = [];
 
-                            vm[object].editable.filter(function(el){
+                            vm[object].columns.filter(function(el){
+                                return el.editable === true;
+                            }).filter(function(el){
                                 return el.type === "string" || el.type === "boolean";
                             }).forEach(function(editable){
                                 if (editable.type === "string") {
@@ -66,7 +68,9 @@ EditModal.view = function (ctrl) {
             ]),
             (function(){
                 var form = [];
-                vm[object].editable.filter(function(el){
+                vm[object].columns.filter(function(el){
+                    return el.editable === true;
+                }).filter(function(el){
                     return el.type !== "string" && el.type !== "boolean";
                 }).forEach(function(editable){
                     if (editable.type === "jsoneditor") {
