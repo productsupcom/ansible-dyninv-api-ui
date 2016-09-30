@@ -1,6 +1,7 @@
 var Groups = function () {
 };
 Groups.list = m.prop([]);
+Groups.picked = m.prop([]);
 Groups.api = {
     first: false,
     next: false,
@@ -8,6 +9,15 @@ Groups.api = {
     last: false,
     total: undefined,
     initial: true
+};
+Groups.replace = function (group) {
+    var index = Groups.list().map(function (el) {
+        return el.d.id();
+    }).indexOf(group.d.id());
+    Groups.list().splice(index, 1, group);
+    Groups.store([], true);
+    m.redraw();
+    return group;
 };
 Groups.storage = mx.storage("Groups", mx.LOCAL_STORAGE);
 Groups.store = function (value, add) {
@@ -81,31 +91,82 @@ Groups.getList = function (direction) {
         Groups.getList("next");
     });
 };
+Groups.pick = function (group) {
+    var found = Groups.picked().some(function (el) {
+        return el.d.id() === group.d.id();
+    });
+    if (!found) {
+        // add to picked
+        Groups.picked().push(group);
+    } else {
+        // remove from picked
+        Groups.picked(Groups.picked().filter(function (el) {
+            return el !== group;
+        }));
+    }
+};
+Groups.isPicked = function (group) {
+    return Groups.picked().some(function (el) {
+        return el.d.id() === group.d.id();
+    });
+};
 Groups.vm = (function () {
     var vm = {};
     vm.init = function () {
         Groups.getList();
         vm.list = Groups.list;
     };
+    vm.create = function () {
+        Group.vm.create();
+    };
+    vm.listFilter = m.prop("");
+    vm.pickButtons = m.prop("manual");
+    vm.picked = function () {
+        var toggle = vm.pickButtons();
+        if (toggle !== "manual") {
+            if (toggle === "none") {
+                Groups.picked([]);
+            }
+            if (toggle === "all") {
+                vm.list().forEach(function (host) {
+                    Groups.pick(host);
+                });
+            }
+            if (toggle === "inverse") {
+                var newlist = Groups.list();
+                Groups.picked().forEach(function (host) {
+                    newlist = newlist.filter(function (el) {
+                        return el !== host;
+                    });
+                });
+                Groups.picked(newlist);
+            }
+            vm.pickButtons("manual");
+        }
+        return Groups.picked();
+    };
+    vm.pick = function (group) {
+        vm.pickButtons("manual");
+        Groups.pick(group);
+    };
+    vm.isPicked = function (group) {
+        return Groups.isPicked(group);
+    };
+    vm.columns = (function() {
+        var columns = {};
+        columns.name = m.prop(true);
+
+        return columns;
+    })();
     return vm;
 })();
 Groups.controller = function () {
-    Groups.vm.init();
+    var ctrl = this;
+    ctrl.vm = Groups.vm;
+    ctrl.vm.init();
 };
-Groups.view = function () {
-    return m("div[class=panel panel-default]", [
-        m("div[class=panel-heading]", [m("h3[class=panel-title", "Available Groups")]),
-        m("div[class=panel-body]", []),
-        m("table[class=table table-condensed table-striped table-hover]", sorts(Groups.list()), [
-            m("thead", [m("tr", [m("th[data-sort-by=name]", {}, "Name")])]),
-            m("tbody", [Groups.vm.list().map(function (group) {
-                    return m("tr[data-id=" + group.d.id() + "]", {
-                        class: group === Groups.vm.group ? "success" : "",
-                        onclick: m.withAttr("data-id", function () {
-                            Groups.vm.edit(group);
-                        })
-                    }, [m("td", {}, group.d.name())]);
-                })])
-        ])
-    ]);
+Groups.view = function(ctrl) {
+    return [
+        m.component(Overview, {type:"Group", vm:ctrl.vm, nameObject:new Group(), singular:Group})//, {vm:ctrl.vm})
+    ];
 };

@@ -19,70 +19,63 @@ function sorts(list) { // jshint ignore:line
                     return a[prop]() > b[prop]() ? 1 : a[prop]() < b[prop]() ? -1 : 0;
                 });
                 if (first === list[0]) {
-					list.reverse();
-				}
+                    list.reverse();
+                }
             }
         }
     };
 }
 
-
-var ansible = {};
-
-ansible.controller = function() {
-    var ctrl = this;
-
-    ctrl.visible = m.prop("hosts");
-
-    ctrl.list = new Hosts.controller();
-    //ctrl.host = new Host.controller();
-    ctrl.groupList = new Groups.controller();
-
-    ctrl.activeView = function(){
-        if (ctrl.visible() === "hosts") {
-            return Hosts.view(ctrl.list);
-        }
-
-        if (ctrl.visible() === "groups") {
-            return Groups.view(ctrl.groupList);
-        }
-    };
+var menu = {};
+menu.controller = function() {
 };
+menu.view = function(ctrl) {
+    function btn(name, route) {
+        var isCurrent = (m.route() == route);
+        var click = function(){ m.route(route); };
+        return m("li", {}, [
+            m("a", {onclick: click, class: (isCurrent ? "active" : "")}, [name]),
+        ]);
+    }
 
-ansible.view = function(ctrl) {
-    return [
-    m("nav", {class:"navbar navbar-default navbar-fixed-top"}, [
+    return m("nav", {class:"navbar navbar-default navbar-fixed-top"}, [
         m("div", {class: "container-fluid"}, [
             m("div", {id:"navbar"}, [
                 m("ul", {class:"nav navbar-nav"}, [
-                    m("li", {}, [
-                        m("a", {"data-visible":"hosts", onclick: m.withAttr("data-visible", ctrl.visible)}, ["Hosts"]),
-                    ]),
-                    m("li", {}, [
-                        m("a", {"data-visible":"groups", onclick: m.withAttr("data-visible", ctrl.visible)}, ["Groups"]),
-                    ]),
+                    btn("Hosts", "/hosts"),
+                    btn("Groups", "/groups"),
                 ]),
             ]),
         ]),
-    ]),
-    m("div", {class:"container-fluid"}, [
-        m("div", {class:"row-fluid"}, [
-            m("div", {class:"col-md-12"}, [
-                ctrl.activeView()
-            ])
-        ])
-    ]),
-    m("div", [
-      Host.vm.modalInstance ? Host.vm.modalInstance.$view() : []
-    ])
-    ];
+    ]);
 };
 
+function Page(page) {
+    var p = this;
+    p.view = function() {
+        return [
+            menu.view(new menu.controller()),
+            m("div", {class:"container-fluid"}, [
+                m("div", {class:"row-fluid"}, [
+                    m("div", {class:"col-md-12"}, [
+                        page
+                    ])
+                ])
+            ]),
+            m("div", [
+                Host.vm.modalInstance ? Host.vm.modalInstance.$view() : [],
+                Group.vm.modalInstance ? Group.vm.modalInstance.$view() : []
+            ]),
+        ];
+    };
+}
+
+var HostsPage = new Page(Hosts.view(new Hosts.controller()));
+var GroupsPage = new Page(Groups.view(new Groups.controller()));
+
+m.route.mode = "search";
 /* globals document */
-m.module(document.body, ansible);
-//initialize the application
-//m.mount(document.body, {controller: Hosts.controller, view: Hosts.view});
-//m.mount(document.body, [
-//    {controller: Hosts.controller, view: Hosts.view},
-////    {controller: Host.controller, view: Host.view}
-//]);
+m.route(document.body, "/hosts", {
+    "/hosts": HostsPage,
+    "/groups": GroupsPage,
+});

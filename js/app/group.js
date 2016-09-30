@@ -14,6 +14,25 @@ var Group = function (data) {
             return d.hostsArr().indexOf(el.d.id());
         });
     };
+
+    this.columns = [
+        {"name":"ID",
+            "editable": false,
+            "object":"id",
+            "type":"integer"},
+        {"name":"Enabled",
+            "editable": true,
+            "object":"enabled",
+            "type":"boolean"},
+        {"name":"Name",
+            "editable": true,
+            "object":"name",
+            "type":"string"},
+        {"name":"Variables",
+            "editable": true,
+            "object":"variables",
+            "type":"jsoneditor"}
+    ];
 };
 Group.prototype.toJSON = function () {
     var d = this.d;
@@ -22,7 +41,9 @@ Group.prototype.toJSON = function () {
         "name": d.name(),
         "enabled": d.enabled(),
         "variables": d.variables(),
-        "hosts": d.hosts()
+        "hosts": d.hosts().map(function(host){
+            return host.d.id();
+        })
     };
     console.log(obj);
     Object.keys(obj).map(function (property) {
@@ -32,4 +53,135 @@ Group.prototype.toJSON = function () {
     });
     console.log(obj);
     return obj;
+};
+
+Group.update = function (group) {
+    if (!(group instanceof Group)) {
+        console.log("Argument needs to be of type Group.", group);
+        return;
+    }
+    console.log(group);
+    var base = "http://127.0.0.1:8000";
+    var url = base + group.d.id();
+    m.request({
+        method: "PUT",
+        url: url,
+        data: group,
+        type: Group
+    }).then(log).then(Groups.replace);
+};
+
+Group.group = new Group();
+
+Group.vm = (function() {
+    var vm = {};
+    vm.editorTitle = "Edit Group";
+    var jseditor = {};
+    vm.init = function() {
+        vm.group = Group.group;
+    };
+
+    vm.create = function () {
+        vm.edit(new Group(), true);
+    };
+
+    vm.save = function (group) {
+        if (jseditor.editor !== undefined) {
+            group.d.variables(jseditor.editor.get());
+        }
+        if (group.d.id()) {
+            vm.update(group);
+        } else {
+            vm.post(group);
+        }
+    };
+    vm.update = function (data) {
+        Group.update(data);
+    };
+    vm.post = function (data) {
+        Group.post(data);
+    };
+
+    vm.edit = function (group, open) {
+        open = typeof open !== "undefined" ? open : false;
+        vm.group = group;
+        if (open) {
+            Group.vm.openModal("lg");
+        }
+    };
+
+    vm.openModal = function (size) {
+        console.log('opening');
+        vm.modalInstance = m.u.init(m.ui.modal({
+            size: size,
+            params: {
+                vm: vm,
+                object: "group"
+            },
+            module: EditModal,
+            onopen: function () {
+                // redraw first else it didn"t finish rendering the view yet
+                m.redraw();
+                // needs to be reimplemented for the group
+                vm.initJsonEditor();
+                //vm.initGroupSelect();
+            }
+        }));
+        vm.modalInstance.result.then(function () {
+            Group.vm.save(Group.vm.group);
+        }, function () {
+            console.log("Modal dismissed");
+        });
+    };
+
+    vm.initJsonEditor = function () {
+        /* globals document, JSONEditor */
+        if (jseditor.editor !== undefined) {
+            jseditor.editor.destroy();
+        }
+        m.startComputation();
+        vm.group.columns.filter(function(el){
+            return el.type === "jsoneditor";
+        }).forEach(function(editable) {
+            console.log(editable);
+            jseditor.editorContainer = document.getElementById(editable.type+editable.object);
+            console.log(jseditor);
+            jseditor.editorOptions = {};
+            jseditor.editor = new JSONEditor(jseditor.editorContainer, jseditor.editorOptions);
+            if (vm.group.d[editable.object]() === undefined) {
+                vm.group.d[editable.object]({});
+            }
+            jseditor.editor.set(vm.group.d[editable.object]());
+        });
+        m.endComputation();
+        m.redraw();
+    };
+
+    vm.enableButton = function (group) {
+        if (group.d.enabled()) {
+            return m("button", {
+                class: "btn btn-default btn-xs",
+                onclick: function () {
+                    group.d.enabled(false);
+                    vm.save(group);
+                }
+            }, [m("span", { class: "glyphicon glyphicon-pause" })]);
+        } else {
+            return m("button", {
+                class: "btn btn-default btn-xs",
+                onclick: function () {
+                    group.d.enabled(true);
+                    vm.save(group);
+                }
+            }, [m("span", { class: "glyphicon glyphicon-play" })]);
+        }
+    };
+
+    return vm;
+})();
+
+Group.controller = function() {
+    var ctrl = this;
+    Group.vm.init();
+    ctrl.vm = Group.vm;
 };
