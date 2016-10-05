@@ -15,6 +15,9 @@ var Host = function (data) {
             return d.groupsArr().indexOf(el.d.id());
         });
     };
+    d.groupsCount = function() {
+        return d.groupsArr().length;
+    };
     d.variables = data ? m.prop(data.variables) : m.prop({});
     if (d.variables === {}) {
         d.variables([]);
@@ -57,6 +60,10 @@ var Host = function (data) {
             "object":"groups",
             "method":"inGroup",
             "type":"select2"},
+        {"name":"Groups",
+            "editable": false,
+            "object":"groupsCount",
+            "type":"string"},
         {"name":"Variables",
             "editable": true,
             "object":"variables",
@@ -191,6 +198,12 @@ Host.vm = (function () {
             }));
         }
     };
+    vm.addHostToGroup = function(host, group) {
+        if (host.d.groupsArr().indexOf(group) === -1) {
+            console.log("adding group", group);
+            host.d.groupsArr().push(group);
+        }
+    };
     vm.initJsonEditor = function () {
         /* globals document, JSONEditor */
         if (jseditor.editor !== undefined) {
@@ -200,9 +213,7 @@ Host.vm = (function () {
         vm.host.columns.filter(function(el){
             return el.type === "jsoneditor";
         }).forEach(function(editable) {
-            console.log(editable);
             jseditor.editorContainer = document.getElementById(editable.type+editable.object);
-            console.log(jseditor);
             jseditor.editorOptions = {};
             jseditor.editor = new JSONEditor(jseditor.editorContainer, jseditor.editorOptions);
             if (vm.host.d[editable.object]() === undefined) {
@@ -239,17 +250,19 @@ Host.vm = (function () {
         if (host.d.enabled()) {
             return m("button", {
                 class: "btn btn-default btn-xs",
-                onclick: function () {
+                onclick: function (e) {
                     host.d.enabled(false);
                     vm.save(host);
+                    e.stopImmediatePropagation();
                 }
             }, [m("span", { class: "glyphicon glyphicon-pause" })]);
         } else {
             return m("button", {
                 class: "btn btn-default btn-xs",
-                onclick: function () {
+                onclick: function (e) {
                     host.d.enabled(true);
                     vm.save(host);
+                    e.stopImmediatePropagation();
                 }
             }, [m("span", { class: "glyphicon glyphicon-play" })]);
         }

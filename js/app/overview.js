@@ -48,8 +48,9 @@ var Overview = {
                         })),
                         m("td", {}, [
                             m("button", {
-                                onclick: function () {
+                                onclick: function (e) {
                                     ctrl.singular.vm.edit(obj, true);
+                                    e.stopImmediatePropagation();
                                 },
                                 class: "btn btn-default btn-xs"
                             }, [m("span", { class: "glyphicon glyphicon-pencil" })]),

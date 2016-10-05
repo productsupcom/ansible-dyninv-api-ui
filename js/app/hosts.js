@@ -198,8 +198,6 @@ Hosts.vm = (function () {
         return Hosts.picked();
     };
     vm.pickedDo = function(option) {
-        console.log("sup");
-        console.log(option);
         if (option === "enable") {
             Hosts.picked().forEach(function (host) {
                 host.d.enabled(true);
@@ -212,6 +210,34 @@ Hosts.vm = (function () {
                 Host.vm.save(host);
             });
         }
+        if (option === "addToGroup") {
+            vm.openModal("sg");
+
+        }
+    };
+    vm.openModal = function(size) {
+        vm.modalInstance = m.u.init(m.ui.modal({
+            size: size,
+            params: {
+                vm: vm,
+            },
+            module: addToGroupModal,
+            onopen: function () {
+                // redraw first else it didn"t finish rendering the view yet
+                m.redraw();
+                vm.initGroupSelect();
+            }
+        }));
+        vm.modalInstance.result.then(function () {
+            vm.picked().forEach(function(host){
+                vm.groupsToAdd().forEach(function(group){
+                    Host.vm.addHostToGroup(host, group);
+                    Host.vm.save(host);
+                });
+            });
+        }, function () {
+            console.log("Modal dismissed");
+        });
     };
     vm.next = function () {
         Hosts.getList("next");
@@ -250,6 +276,7 @@ Hosts.vm = (function () {
         columns.hostname = m.prop(true);
         columns.created = m.prop(true);
         columns.updated = m.prop(true);
+        columns.groupsCount = m.prop(true);
         return columns;
     })();
     vm.showAllColumns = function () {
@@ -265,7 +292,7 @@ Hosts.vm = (function () {
     vm.pager.currentPage = m.prop(0);
     vm.pager.itemsPerPage = function() {
         /* globals window */
-        return parseInt((window.innerHeight - 165) / 33);
+        return parseInt((window.innerHeight - 170) / 33);
     };
     vm.pager.maxSize = 7;
     vm.pager.directionLinks = true;
@@ -273,6 +300,27 @@ Hosts.vm = (function () {
     vm.pager.previousText = "<";
     vm.pager.nextText = ">";
     vm.pager.pagination = m.u.init(m.ui.pagination(vm.pager));
+
+
+    vm.groupsToAdd = m.prop([]);
+    /* globals $ */
+    vm.initGroupSelect = function () {
+        var el = $("#addGroups");
+        if (el.hasClass("select2-hidden-accessible")) {
+            // redraw to reflect the change, else it can sometimes show the old one
+            el.select2("destroy");
+            m.redraw();
+        }
+        el.select2({width: "530px"});
+        el.on("change", function () {
+            m.startComputation();
+            var groups = el.select2("val");
+            // simply set the returned array as the new group list
+            vm.groupsToAdd(groups);
+            m.endComputation();
+            m.redraw();
+        });
+    };
 
     return vm;
 })();
@@ -285,4 +333,45 @@ Hosts.view = function(ctrl) {
     return [
         m.component(Overview, {type:"Host", vm:ctrl.vm, nameObject:new Host(), singular:Host})//, {vm:ctrl.vm})
     ];
+};
+
+var addToGroupModal = {};
+addToGroupModal.controller = function (params) {
+    var ctrl = this;
+    ctrl.params = params;
+    ctrl.list = Groups.list();
+    ctrl.ok = function () {
+        ctrl.$modal.close();
+    };
+    ctrl.cancel = function () {
+        ctrl.$modal.dismiss("Cancel");
+    };
+};
+addToGroupModal.view = function (ctrl) {
+    var vm = ctrl.params.vm;
+    var object = ctrl.params.object;
+    return m("div", [
+        m("div", { class: "modal-header" }, [m("h3", { class: "modal-title" }, ["Add Group(s)"])]),
+        m("div", { class: "modal-body" }, [
+            m("div", [m("select", {id: "addGroups", multiple: "multiple" }, [
+                ctrl.list.map(function (el) {
+                    return m("option", {
+                        value: el.d.id(),
+                    }, el.d.name());
+                })])])
+        ]),
+        m("div", { class: "modal-footer" }, [
+            m("button", {
+                class: "btn btn-default",
+                onclick: function () {
+                    ctrl.cancel();
+                }
+            }, "Cancel"),
+            m("button[class=btn btn-primary]", {
+                onclick: function () {
+                    ctrl.ok();
+                }
+            }, "Save")
+        ])
+    ]);
 };

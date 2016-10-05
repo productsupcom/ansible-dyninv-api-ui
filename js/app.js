@@ -100,6 +100,14 @@ footer.view = function(ctrl) {
                                 m("li", [m("a", { onclick: function() {vm.pickedDo("enable");} }, ["Enable"])]),
                                 m("li", [m("a", { onclick: function() {vm.pickedDo("disable");} }, ["Disable"])]),
                                 m("li", { class: "divider" }),
+                                (function(){
+                                    if (ctrl.type === "Host") {
+                                        return m("li", [m("a", { onclick: function() {vm.pickedDo("addToGroup");} }, ["Add to Group(s)"])]);
+                                    }
+                                    if (ctrl.type === "Group") {
+                                        return m("li", [m("a", { onclick: function() {vm.pickedDo("addHosts");} }, ["Add Host(s)"])]);
+                                    }
+                                })(),
                             ])
                         ]),
                         m("button", {
@@ -167,6 +175,7 @@ function Page(page) {
                 ])
             ]),
             m("div", [
+                Hosts.vm.modalInstance ? Hosts.vm.modalInstance.$view() : [],
                 Host.vm.modalInstance ? Host.vm.modalInstance.$view() : [],
                 Group.vm.modalInstance ? Group.vm.modalInstance.$view() : []
             ]),
