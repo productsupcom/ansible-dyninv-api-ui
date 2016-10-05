@@ -114,12 +114,40 @@ Groups.vm = (function () {
     var vm = {};
     vm.init = function () {
         Groups.getList();
-        vm.list = Groups.list;
     };
     vm.create = function () {
         Group.vm.create();
     };
     vm.listFilter = m.prop("");
+    vm.sortProp = m.prop("id");
+    vm.list = function () {
+        var list = [];
+        if (vm.listFilter() === "") {
+            list = Groups.list();
+        }
+        list = Groups.list().filter(function (group) {
+            var searchable = [
+                "name"
+            ];
+            var found = false;
+            searchable.forEach(function (prop) {
+                if (typeof group.d[prop]() === "string") {
+                    if (group.d[prop]().toUpperCase().includes(vm.listFilter().toUpperCase())) {
+                        found = true;
+                    }
+                }
+            });
+            return found;
+        });
+
+        return list.sort(function(a, b) {
+            var prop = vm.sortProp();
+            if (a instanceof Group || b instanceof Group) {
+                return a.d[prop]() > b.d[prop]() ? 1 : a.d[prop]() < b.d[prop]() ? -1 : 0;
+            }
+            return a[prop]() > b[prop]() ? 1 : a[prop]() < b[prop]() ? -1 : 0;
+        });
+    };
     vm.pickButtons = m.prop("manual");
     vm.picked = function () {
         var toggle = vm.pickButtons();
@@ -128,15 +156,15 @@ Groups.vm = (function () {
                 Groups.picked([]);
             }
             if (toggle === "all") {
-                vm.list().forEach(function (host) {
-                    Groups.pick(host);
+                vm.list().forEach(function (group) {
+                    Groups.pick(group);
                 });
             }
             if (toggle === "inverse") {
                 var newlist = Groups.list();
-                Groups.picked().forEach(function (host) {
+                Groups.picked().forEach(function (group) {
                     newlist = newlist.filter(function (el) {
-                        return el !== host;
+                        return el !== group;
                     });
                 });
                 Groups.picked(newlist);
@@ -144,6 +172,20 @@ Groups.vm = (function () {
             vm.pickButtons("manual");
         }
         return Groups.picked();
+    };
+    vm.pickedDo = function(option) {
+        if (option === "enable") {
+            Groups.picked().forEach(function (group) {
+                group.d.enabled(true);
+                Group.vm.save(group);
+            });
+        }
+        if (option === "disable") {
+            Groups.picked().forEach(function (group) {
+                group.d.enabled(false);
+                Group.vm.save(group);
+            });
+        }
     };
     vm.pick = function (group) {
         vm.pickButtons("manual");
@@ -158,6 +200,21 @@ Groups.vm = (function () {
 
         return columns;
     })();
+    vm.pager = {};
+    vm.pager.totalItems = function () {
+        return vm.list() ? vm.list().length : 0;
+    }.bind(vm.pager);
+    vm.pager.currentPage = m.prop(0);
+    vm.pager.itemsPerPage = function() {
+        /* globals window */
+        return parseInt((window.innerHeight - 165) / 33);
+    };
+    vm.pager.maxSize = 7;
+    vm.pager.directionLinks = true;
+    vm.pager.boundaryLinks = true;
+    vm.pager.previousText = "<";
+    vm.pager.nextText = ">";
+    vm.pager.pagination = m.u.init(m.ui.pagination(vm.pager));
     return vm;
 })();
 Groups.controller = function () {

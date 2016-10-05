@@ -124,15 +124,17 @@ Hosts.getList = function (direction) {
 Hosts.vm = (function () {
     var vm = {};
     vm.init = function () {
-        Hosts.getList();    //vm.list = Hosts.list;
+        Hosts.getList();
     };
     vm.listFilter = m.prop("");
+    vm.sortIt = m.prop(false);
+    vm.sortProp = m.prop("id");
     vm.list = function () {
+        var list = [];
         if (vm.listFilter() === "") {
-            return Hosts.list();
+            list = Hosts.list();
         }
-        vm.pager.currentPage(0);
-        return Hosts.list().filter(function (host) {
+        list = Hosts.list().filter(function (host) {
             var searchable = [
                 "ip",
                 "domain",
@@ -151,6 +153,25 @@ Hosts.vm = (function () {
             });
             return found;
         });
+
+        if (vm.sortIt()) {
+            // for some reason it goes in here for 6-7x
+            console.log("gonna sort", list[0].d.hostname());
+            var first = list[0];
+            list = list.sort(function(a, b) {
+                var prop = vm.sortProp();
+                if (a instanceof Host || b instanceof Host) {
+                    return a.d[prop]() > b.d[prop]() ? 1 : a.d[prop]() < b.d[prop]() ? -1 : 0;
+                }
+                return a[prop]() > b[prop]() ? 1 : a[prop]() < b[prop]() ? -1 : 0;
+            });
+            if (first === list[0]) {
+                list = list.reverse();
+            }
+            //vm.sortIt(false);
+        }
+
+        return list;
     };
     vm.picked = function () {
         var toggle = vm.pickButtons();
@@ -175,6 +196,22 @@ Hosts.vm = (function () {
             vm.pickButtons("manual");
         }
         return Hosts.picked();
+    };
+    vm.pickedDo = function(option) {
+        console.log("sup");
+        console.log(option);
+        if (option === "enable") {
+            Hosts.picked().forEach(function (host) {
+                host.d.enabled(true);
+                Host.vm.save(host);
+            });
+        }
+        if (option === "disable") {
+            Hosts.picked().forEach(function (host) {
+                host.d.enabled(false);
+                Host.vm.save(host);
+            });
+        }
     };
     vm.next = function () {
         Hosts.getList("next");
@@ -221,6 +258,22 @@ Hosts.vm = (function () {
         });
         m.redraw();
     };
+    vm.pager = {};
+    vm.pager.totalItems = function () {
+        return vm.list() ? vm.list().length : 0;
+    }.bind(vm.pager);
+    vm.pager.currentPage = m.prop(0);
+    vm.pager.itemsPerPage = function() {
+        /* globals window */
+        return parseInt((window.innerHeight - 165) / 33);
+    };
+    vm.pager.maxSize = 7;
+    vm.pager.directionLinks = true;
+    vm.pager.boundaryLinks = true;
+    vm.pager.previousText = "<";
+    vm.pager.nextText = ">";
+    vm.pager.pagination = m.u.init(m.ui.pagination(vm.pager));
+
     return vm;
 })();
 Hosts.controller = function () {

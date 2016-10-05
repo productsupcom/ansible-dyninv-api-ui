@@ -20,7 +20,6 @@ EditModal.view = function (ctrl) {
         m("div", { class: "modal-header" }, [m("h3", { class: "modal-title" }, [vm.editorTitle])]),
         m("div", { class: "modal-body" }, [
             m("div", { class: "panel panel-info" }, [
-                m("div", { class: "panel-heading" }, [m("h3", { class: "panel-title" }, "Information")]),
                 m("div", { class: "panel-body" }, [
                     m("div", { class: "form-horizontal"}, [
 

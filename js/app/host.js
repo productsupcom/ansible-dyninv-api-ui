@@ -224,7 +224,7 @@ Host.vm = (function () {
                 el.select2("destroy");
                 m.redraw();
             }
-            el.select2();
+            el.select2({width: "830px"});
             el.on("change", function () {
                 m.startComputation();
                 var groups = el.select2("val");
