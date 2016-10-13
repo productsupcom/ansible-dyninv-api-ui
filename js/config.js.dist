@@ -1,0 +1,3 @@
+var uiConfig = {
+    restUrl: "http://example.com"
+};

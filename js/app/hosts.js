@@ -69,7 +69,7 @@ Hosts.store = function (value, add) {
 };
 Hosts.getList = function (direction) {
     direction = typeof direction !== "undefined" ? direction : false;
-    var base = "http://127.0.0.1:8000";
+    var base = uiConfig.restUrl;
     var end = "/hosts";
     if (Hosts.api.total !== undefined && Hosts.list().length === Hosts.api.total) {
         return;
@@ -214,6 +214,9 @@ Hosts.vm = (function () {
             vm.openModal("sg");
 
         }
+    };
+    vm.save = function(host) {
+        Host.vm.save(host);
     };
     vm.openModal = function(size) {
         vm.modalInstance = m.u.init(m.ui.modal({

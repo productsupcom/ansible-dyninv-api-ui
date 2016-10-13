@@ -15,20 +15,25 @@ var Group = function (data) {
         });
     };
 
+    this.inplace = m.prop(false);
     this.columns = [
         {"name":"ID",
+            "inplace": false,
             "editable": false,
             "object":"id",
             "type":"integer"},
         {"name":"Enabled",
+            "inplace": false,
             "editable": true,
             "object":"enabled",
             "type":"boolean"},
         {"name":"Name",
+            "inplace": true,
             "editable": true,
             "object":"name",
             "type":"string"},
         {"name":"Variables",
+            "inplace": false,
             "editable": true,
             "object":"variables",
             "type":"jsoneditor"}
@@ -61,7 +66,7 @@ Group.update = function (group) {
         return;
     }
     console.log(group);
-    var base = "http://127.0.0.1:8000";
+    var base = uiConfig.restUrl;
     var url = base + group.d.id();
     m.request({
         method: "PUT",

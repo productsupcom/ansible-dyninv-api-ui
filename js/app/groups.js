@@ -39,7 +39,7 @@ Groups.store = function (value, add) {
 };
 Groups.getList = function (direction) {
     direction = typeof direction !== "undefined" ? direction : false;
-    var base = "http://127.0.0.1:8000";
+    var base = uiConfig.restUrl;
     var end = "/groups";
     if (Groups.api.total !== undefined && Groups.list().length === Groups.api.total) {
         return;
@@ -187,6 +187,9 @@ Groups.vm = (function () {
             });
         }
     };
+    vm.save = function(group) {
+        Group.vm.save(group);
+    }
     vm.pick = function (group) {
         vm.pickButtons("manual");
         Groups.pick(group);

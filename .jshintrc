@@ -14,5 +14,5 @@
   "undef": true,
   "unused": true,
   "strict": "implied",
-  "predef": ["m", "localStorage", "mx", "Overview", "Host", "Hosts", "EditModal", "Group", "Groups", "sorts", "log"]
+  "predef": ["m", "localStorage", "mx", "Overview", "Host", "Hosts", "EditModal", "Group", "Groups", "sorts", "log", "uiConfig"]
 }

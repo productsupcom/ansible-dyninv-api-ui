@@ -69,7 +69,29 @@ var Overview = {
                                         /* globals dateFormat */
                                         body.push(m("td", {}, dateFormat(Date.parse(obj.d[column.object]()))));
                                     } else {
-                                        body.push(m("td", {}, obj.d[column.object]()));
+                                        body.push(m("td", {
+                                            ondblclick: function(e){
+                                            obj.inplace(true);
+                                            e.stopImmediatePropagation();
+                                        }},
+                                            (function(){
+                                                if (column.inplace === true) {
+                                                    return obj.inplace() ? m("input", {
+                                                        value: obj.d[column.object](),
+                                                        onclick: function(e){
+                                                            e.stopImmediatePropagation();
+                                                        },
+                                                        onchange: m.withAttr("value", function(value) {
+                                                            obj.inplace(false);
+                                                            obj.d[column.object](value);
+                                                            vm.save(obj);
+                                                        })}) : obj.d[column.object]();
+                                                } else {
+                                                    return obj.d[column.object]();
+                                                }
+                                            }())
+                                            //column.inplace() ? "bla" :
+                                        ));
                                     }
                                 }
                             });

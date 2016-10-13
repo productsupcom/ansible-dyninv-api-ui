@@ -22,50 +22,63 @@ var Host = function (data) {
     if (d.variables === {}) {
         d.variables([]);
     }
+    this.inplace = m.prop(false);
     this.columns = [
         {"name":"ID",
+            "inplace": false,
             "editable": false,
             "object":"id",
             "type":"integer"},
         {"name":"Created",
+            "inplace": false,
             "editable": false,
             "object":"created",
             "type":"datetime"},
         {"name":"Updated",
+            "inplace": false,
             "editable": false,
             "object":"updated",
             "type":"datetime"},
         {"name":"Enabled",
+            "inplace": false,
             "editable": true,
             "object":"enabled",
             "type":"boolean"},
         {"name":"Domain",
+            "inplace": true,
             "editable": true,
             "object":"domain",
             "type":"string"},
         {"name":"Host",
+            "inplace": true,
             "editable": true,
             "object":"host",
             "type":"string"},
         {"name":"Hostname",
+            "inplace": true,
             "editable": true,
             "object":"hostname",
             "type":"string"},
         {"name":"IP Address",
+            "inplace": true,
             "editable": true,
             "object":"ip",
             "type":"string"},
         {"name":"Groups",
+            "inplace": false,
             "editable": true,
             "object":"groups",
             "method":"inGroup",
             "type":"select2"},
         {"name":"Groups",
+            "inplace": false,
             "editable": false,
             "object":"groupsCount",
             "type":"string"},
         {"name":"Variables",
+            "inplace": false,
             "editable": true,
+            "tab": true,
             "object":"variables",
             "type":"jsoneditor"}
     ];
@@ -99,7 +112,7 @@ Host.update = function (host) {
         return;
     }
     console.log(host);
-    var base = "http://127.0.0.1:8000";
+    var base = uiConfig.restUrl;
     var url = base + host.d.id();
     m.request({
         method: "PUT",
@@ -114,7 +127,7 @@ Host.post = function (host) {
         return;
     }
     console.log(host);
-    var base = "http://127.0.0.1:8000";
+    var base = uiConfig.restUrl;
     var endpoint = "/hosts";
     var url = base + endpoint;
     m.request({
