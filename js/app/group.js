@@ -66,10 +66,11 @@ Group.update = function (group) {
         return;
     }
     console.log(group);
-    var base = uiConfig.restUrl;
-    var url = base + group.d.id();
+    var url = uiConfig.restUrl + group.d.id();
     m.request({
         method: "PUT",
+        user: uiConfig.user,
+        password: uiConfig.password,
         url: url,
         data: group,
         type: Group

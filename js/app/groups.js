@@ -71,6 +71,8 @@ Groups.getList = function (direction) {
     console.log(Groups.list().length);
     m.request({
         method: "GET",
+        user: uiConfig.user,
+        password: uiConfig.password,
         url: url,
         background: true,
         initialValue: [],

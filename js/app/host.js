@@ -116,6 +116,8 @@ Host.update = function (host) {
     var url = base + host.d.id();
     m.request({
         method: "PUT",
+        user: uiConfig.user,
+        password: uiConfig.password,
         url: url,
         data: host,
         type: Host
@@ -132,6 +134,8 @@ Host.post = function (host) {
     var url = base + endpoint;
     m.request({
         method: "POST",
+        user: uiConfig.user,
+        password: uiConfig.password,
         url: url,
         data: host,
         type: Host

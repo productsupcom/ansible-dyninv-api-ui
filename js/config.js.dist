@@ -1,3 +1,5 @@
 var uiConfig = {
-    restUrl: "http://example.com"
+    restUrl: "http://example.com",
+    user: undefined,
+    password: undefined
 };

@@ -101,6 +101,8 @@ Hosts.getList = function (direction) {
     console.log(Hosts.list().length);
     m.request({
         method: "GET",
+        user: uiConfig.user,
+        password: uiConfig.password,
         url: url,
         background: true,
         initialValue: [],
