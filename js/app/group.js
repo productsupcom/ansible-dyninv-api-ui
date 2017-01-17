@@ -4,9 +4,9 @@ var Group = function (data) {
     d.id = data ? m.prop(data["@id"]) : m.prop("");
     d.name = data ? m.prop(data.name) : m.prop("");
     d.enabled = data ? m.prop(data.enabled) : m.prop("");
-    d.variables = data ? m.prop(data.variables) : m.prop([]);
-    if (d.variables === {}) {
-        d.variables([]);
+    d.variables = data ? m.prop(data.variables) : m.prop({});
+    if (Array.isArray(d.variables())) {
+        d.variables({});
     }
     d.hostsArr = data ? m.prop(data.hosts) : m.prop([]);
     d.hosts = function () {
@@ -77,6 +77,25 @@ Group.update = function (group) {
     }).then(log).then(Groups.replace);
 };
 
+Group.post = function (group) {
+    if (!(group instanceof Group)) {
+        console.log("Argument needs to be of type Group.", group);
+        return;
+    }
+    console.log(group);
+    var base = uiConfig.restUrl;
+    var endpoint = "/groups";
+    var url = base + endpoint;
+    m.request({
+        method: "POST",
+        user: uiConfig.user,
+        password: uiConfig.password,
+        url: url,
+        data: group,
+        type: Group
+    }).then(log).then(Groups.add);
+};
+
 Group.group = new Group();
 
 Group.vm = (function() {
@@ -117,7 +136,7 @@ Group.vm = (function() {
     };
 
     vm.openModal = function (size) {
-        console.log('opening');
+        console.log("opening");
         vm.modalInstance = m.u.init(m.ui.modal({
             size: size,
             params: {
@@ -127,7 +146,7 @@ Group.vm = (function() {
             module: EditModal,
             onopen: function () {
                 // redraw first else it didn"t finish rendering the view yet
-                m.redraw();
+                m.redraw(true);
                 // needs to be reimplemented for the group
                 vm.initJsonEditor();
                 //vm.initGroupSelect();
@@ -152,12 +171,17 @@ Group.vm = (function() {
             console.log(editable);
             jseditor.editorContainer = document.getElementById(editable.type+editable.object);
             console.log(jseditor);
-            jseditor.editorOptions = {};
-            jseditor.editor = new JSONEditor(jseditor.editorContainer, jseditor.editorOptions);
-            if (vm.group.d[editable.object]() === undefined) {
-                vm.group.d[editable.object]({});
+            if (jseditor.editorContainer) {
+                jseditor.editorOptions = {};
+                jseditor.editor = new JSONEditor(jseditor.editorContainer, jseditor.editorOptions);
+                console.log(vm.group.d[editable.object]());
+                if (vm.group.d[editable.object]() === undefined) {
+                    vm.group.d[editable.object]({});
+                }
+                jseditor.editor.set(vm.group.d[editable.object]());
+            } else {
+                console.log('Mysterious forces have caused the editorContainer not to be available.');
             }
-            jseditor.editor.set(vm.group.d[editable.object]());
         });
         m.endComputation();
         m.redraw();

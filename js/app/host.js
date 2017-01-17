@@ -19,8 +19,8 @@ var Host = function (data) {
         return d.groupsArr().length;
     };
     d.variables = data ? m.prop(data.variables) : m.prop({});
-    if (d.variables === {}) {
-        d.variables([]);
+    if (Array.isArray(d.variables())) {
+        d.variables({});
     }
     this.inplace = m.prop(false);
     this.columns = [
@@ -167,7 +167,7 @@ Host.vm = (function () {
             module: EditModal,
             onopen: function () {
                 // redraw first else it didn"t finish rendering the view yet
-                m.redraw();
+                m.redraw(true);
                 vm.initJsonEditor();
                 vm.initGroupSelect();
             }

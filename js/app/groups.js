@@ -19,6 +19,17 @@ Groups.replace = function (group) {
     m.redraw();
     return group;
 };
+Groups.add = function (group) {
+    var found = Groups.list().some(function (el) {
+        return el.d.id() === group.d.id();
+    });
+    if (!found) {
+        Groups.list().push(group);
+        Groups.store([], true);
+    }
+    m.redraw();
+    return group;
+};
 Groups.storage = mx.storage("Groups", mx.LOCAL_STORAGE);
 Groups.store = function (value, add) {
     add = typeof add !== "undefined" ? add : false;
