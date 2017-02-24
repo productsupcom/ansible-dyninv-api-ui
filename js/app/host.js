@@ -5,14 +5,15 @@ var Host = function (data) {
     d.created = data ? m.prop(data.created) : m.prop("");
     d.domain = data ? m.prop(data.domain) : m.prop("");
     d.enabled = data ? m.prop(data.enabled) : m.prop("");
-    d.host = data ? m.prop(data.host) : m.prop("");
+    d.fqdn = data ? m.prop(data.fqdn) : m.prop("");
     d.hostname = data ? m.prop(data.hostname) : m.prop("");
+    d.name = d.hostname;
     d.updated = data ? m.prop(data.updated) : m.prop("");
     d.ip = data ? m.prop(data.ip) : m.prop("");
     d.groupsArr = data ? m.prop(data.groups || []) : m.prop([]);
     d.groups = function () {
         return Groups.list().filter(function (el) {
-            return d.groupsArr().indexOf(el.d.id());
+            return d.groupsArr().indexOf(el.d.id()) !== -1;
         });
     };
     d.groupsCount = function() {
@@ -52,7 +53,7 @@ var Host = function (data) {
         {"name":"Host",
             "inplace": true,
             "editable": true,
-            "object":"host",
+            "object":"fqdn",
             "type":"string"},
         {"name":"Hostname",
             "inplace": true,
@@ -67,7 +68,7 @@ var Host = function (data) {
         {"name":"Groups",
             "inplace": false,
             "editable": true,
-            "object":"groups",
+            "object":"Groups",
             "method":"inGroup",
             "type":"select2"},
         {"name":"Groups",
@@ -90,7 +91,7 @@ Host.prototype.toJSON = function () {
         "created": d.created(),
         "domain": d.domain(),
         "enabled": d.enabled(),
-        "host": d.host(),
+        "fqdn": d.fqdn(),
         "hostname": d.hostname(),
         "updated": d.updated(),
         "ip": d.ip(),
@@ -107,6 +108,9 @@ Host.prototype.toJSON = function () {
     return obj;
 };
 Host.update = function (host) {
+    if (Login.token() === null) {
+        m.route("/login");
+    }
     if (!(host instanceof Host)) {
         console.log("Argument needs to be of type Host.", host);
         return;
@@ -114,16 +118,19 @@ Host.update = function (host) {
     console.log(host);
     var base = uiConfig.restUrl;
     var url = base + host.d.id();
-    m.request({
+    api.request({
         method: "PUT",
-        user: uiConfig.user,
-        password: uiConfig.password,
         url: url,
         data: host,
         type: Host
+    }).catch(function(e){
+        console.log(e.message);
     }).then(log).then(Hosts.replace);
 };
 Host.post = function (host) {
+    if (Login.token() === null) {
+        m.route("/login");
+    }
     if (!(host instanceof Host)) {
         console.log("Argument needs to be of type Host.", host);
         return;
@@ -132,13 +139,13 @@ Host.post = function (host) {
     var base = uiConfig.restUrl;
     var endpoint = "/hosts";
     var url = base + endpoint;
-    m.request({
+    api.request({
         method: "POST",
-        user: uiConfig.user,
-        password: uiConfig.password,
         url: url,
         data: host,
         type: Host
+    }).catch(function(e){
+        console.log(e.message);
     }).then(log).then(Hosts.add);
 };
 Host.host = new Host();

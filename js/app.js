@@ -6,6 +6,20 @@ var log = function(value) { // jshint ignore:line
     return value;
 };
 
+var api = {};
+api.request = function(options) {
+    options.config = function(xhr) {
+        xhr.setRequestHeader("Authorization", "Bearer " + Login.token());
+        xhr.setRequestHeader("Accept", "application/ld+json");
+        //xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
+    };
+    return m.request(options);
+};
+
+// because herp derp race condition
+Group.vm.hosts = Hosts.list();
+Host.vm.groups = Groups.list();
+
 function sorts(list) { // jshint ignore:line
     return {
         onclick: function(e) {
@@ -177,19 +191,22 @@ function Page(page) {
             m("div", [
                 Hosts.vm.modalInstance ? Hosts.vm.modalInstance.$view() : [],
                 Host.vm.modalInstance ? Host.vm.modalInstance.$view() : [],
-                Group.vm.modalInstance ? Group.vm.modalInstance.$view() : []
+                Group.vm.modalInstance ? Group.vm.modalInstance.$view() : [],
+                Groups.vm.modalInstance ? Groups.vm.modalInstance.$view() : [],
             ]),
             footer.view(page[0].controller()),
         ];
     };
 }
 
+var LoginPage = Login;
 var HostsPage = new Page(Hosts.view(new Hosts.controller()));
 var GroupsPage = new Page(Groups.view(new Groups.controller()));
 
 m.route.mode = "search";
 /* globals document */
 m.route(document.body, "/hosts", {
+    "/login": LoginPage,
     "/hosts": HostsPage,
     "/groups": GroupsPage,
 });

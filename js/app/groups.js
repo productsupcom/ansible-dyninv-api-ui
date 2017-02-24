@@ -41,7 +41,11 @@ Groups.store = function (value, add) {
         return Groups.list();
     }
     if (!value && localStorage.getItem("groupsList") !== null) {
-        console.log("Fetching from localStorage");
+        if (Groups.list().length == Groups.storage.get("groupsList").length) {
+            return true;
+        }
+        console.log("Fetching Groups from localStorage");
+        Groups.list([]);
         Groups.storage.get("groupsList").forEach(function (element) {
             Groups.list().push(new Group(element));
         });
@@ -49,6 +53,9 @@ Groups.store = function (value, add) {
     }
 };
 Groups.getList = function (direction) {
+    if (Login.token() === null) {
+        m.route("/login");
+    }
     direction = typeof direction !== "undefined" ? direction : false;
     var base = uiConfig.restUrl;
     var end = "/groups";
@@ -80,10 +87,8 @@ Groups.getList = function (direction) {
     console.log(url);
     console.log(Groups.api.total);
     console.log(Groups.list().length);
-    m.request({
+    api.request({
         method: "GET",
-        user: uiConfig.user,
-        password: uiConfig.password,
         url: url,
         background: true,
         initialValue: [],
@@ -99,6 +104,8 @@ Groups.getList = function (direction) {
             return response["hydra:member"];
         },
         type: Group
+    }).catch(function(e){
+        console.log(e.message);
     }).then(log).then(Groups.store).then(m.redraw).then(function () {
         // while debugging other stuff disable this
         Groups.getList("next");
@@ -199,10 +206,41 @@ Groups.vm = (function () {
                 Group.vm.save(group);
             });
         }
+        if (option === "addHosts") {
+            console.log("addHosts");
+            vm.openModal("sg");
+
+        }
+    };
+    vm.openModal = function(size) {
+        console.log("Opening modal");
+        vm.modalInstance = m.u.init(m.ui.modal({
+            size: size,
+            params: {
+                vm: vm,
+            },
+            module: addHostsModal,
+            onopen: function () {
+                console.log("Modal onopen");
+                // redraw first else it didn"t finish rendering the view yet
+                m.redraw();
+                vm.initHostSelect();
+            }
+        }));
+        vm.modalInstance.result.then(function () {
+            vm.picked().forEach(function(group){
+                vm.hostsToAdd().forEach(function(host){
+                    Group.vm.addGroupToHost(group, host);
+                    Group.vm.save(group);
+                });
+            });
+        }, function () {
+            console.log("Modal dismissed");
+        });
     };
     vm.save = function(group) {
         Group.vm.save(group);
-    }
+    };
     vm.pick = function (group) {
         vm.pickButtons("manual");
         Groups.pick(group);
@@ -231,15 +269,80 @@ Groups.vm = (function () {
     vm.pager.previousText = "<";
     vm.pager.nextText = ">";
     vm.pager.pagination = m.u.init(m.ui.pagination(vm.pager));
+
+    vm.hostsToAdd = m.prop([]);
+    /* globals $ */
+    vm.initHostSelect = function () {
+        console.log("initHostSelect");
+        var el = $("#addHosts");
+        if (el.hasClass("select2-hidden-accessible")) {
+            // redraw to reflect the change, else it can sometimes show the old one
+            el.select2("destroy");
+            m.redraw();
+        }
+        el.select2({width: "530px"});
+        el.on("change", function () {
+            m.startComputation();
+            var hosts = el.select2("val");
+            // simply set the returned array as the new group list
+            vm.hostsToAdd(hosts);
+            m.endComputation();
+            m.redraw();
+        });
+    };
+
     return vm;
 })();
 Groups.controller = function () {
     var ctrl = this;
     ctrl.vm = Groups.vm;
-    ctrl.vm.init();
+    if (Login.token()) {
+        ctrl.vm.init();
+    }
 };
 Groups.view = function(ctrl) {
     return [
         m.component(Overview, {type:"Group", vm:ctrl.vm, nameObject:new Group(), singular:Group})//, {vm:ctrl.vm})
     ];
+};
+
+var addHostsModal = {};
+addHostsModal.controller = function (params) {
+    var ctrl = this;
+    ctrl.params = params;
+    ctrl.list = Hosts.list();
+    ctrl.ok = function () {
+        ctrl.$modal.close();
+    };
+    ctrl.cancel = function () {
+        ctrl.$modal.dismiss("Cancel");
+    };
+};
+addHostsModal.view = function (ctrl) {
+    var vm = ctrl.params.vm;
+    var object = ctrl.params.object;
+    return m("div", [
+        m("div", { class: "modal-header" }, [m("h3", { class: "modal-title" }, ["Add Host(s)"])]),
+        m("div", { class: "modal-body" }, [
+            m("div", [m("select", {id: "addHosts", multiple: "multiple" }, [
+                ctrl.list.map(function (el) {
+                    return m("option", {
+                        value: el.d.id(),
+                    }, el.d.hostname());
+                })])])
+        ]),
+        m("div", { class: "modal-footer" }, [
+            m("button", {
+                class: "btn btn-default",
+                onclick: function () {
+                    ctrl.cancel();
+                }
+            }, "Cancel"),
+            m("button[class=btn btn-primary]", {
+                onclick: function () {
+                    ctrl.ok();
+                }
+            }, "Save")
+        ])
+    ]);
 };

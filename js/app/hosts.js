@@ -60,7 +60,11 @@ Hosts.store = function (value, add) {
         return Hosts.list();
     }
     if (!value && localStorage.getItem("hostsList") !== null) {
-        console.log("Fetching from localStorage");
+        if (Hosts.list().length == Hosts.storage.get("hostsList").length) {
+            return true;
+        }
+        console.log("Fetching Hosts from localStorage");
+        Hosts.list([]);
         Hosts.storage.get("hostsList").forEach(function (element) {
             Hosts.list().push(new Host(element));
         });
@@ -68,6 +72,9 @@ Hosts.store = function (value, add) {
     }
 };
 Hosts.getList = function (direction) {
+    if (Login.token() === null) {
+        m.route("/login");
+    }
     direction = typeof direction !== "undefined" ? direction : false;
     var base = uiConfig.restUrl;
     var end = "/hosts";
@@ -76,7 +83,7 @@ Hosts.getList = function (direction) {
     }
     if (!direction) {
         if (Hosts.store()) {
-            m.redraw();
+            //m.redraw();
             return;
         }
     }
@@ -99,14 +106,13 @@ Hosts.getList = function (direction) {
     console.log(url);
     console.log(Hosts.api.total);
     console.log(Hosts.list().length);
-    m.request({
+    api.request({
         method: "GET",
-        user: uiConfig.user,
-        password: uiConfig.password,
         url: url,
         background: true,
         initialValue: [],
         unwrapSuccess: function (response) {
+            console.log(response);
             Hosts.api.initial = false;
             Hosts.api.next = response["hydra:nextPage"] || false;
             Hosts.api.previous = response["hydra:previousPage"] || false;
@@ -118,7 +124,12 @@ Hosts.getList = function (direction) {
             return response["hydra:member"];
         },
         type: Host
-    }).then(log).then(Hosts.store).then(m.redraw).then(function () {
+    }).catch(function(e){
+        console.log(e.message);
+    }).then(log)
+    .then(Hosts.store)
+    .then(m.redraw)
+    .then(function () {
         // while debugging other stuff disable this
         Hosts.getList("next");
     });
@@ -140,7 +151,7 @@ Hosts.vm = (function () {
             var searchable = [
                 "ip",
                 "domain",
-                "host",
+                "fqdn",
                 "hostname",
                 "created",
                 "updated"
@@ -277,7 +288,7 @@ Hosts.vm = (function () {
         var columns = {};
         columns.ip = m.prop(true);
         columns.domain = m.prop(true);
-        columns.host = m.prop(true);
+        columns.fqdn = m.prop(true);
         columns.hostname = m.prop(true);
         columns.created = m.prop(true);
         columns.updated = m.prop(true);
@@ -332,7 +343,9 @@ Hosts.vm = (function () {
 Hosts.controller = function () {
     var ctrl = this;
     ctrl.vm = Hosts.vm;
-    ctrl.vm.init();
+    if (Login.token()) {
+        ctrl.vm.init();
+    }
 };
 Hosts.view = function(ctrl) {
     return [

@@ -9,6 +9,7 @@ var Overview = {
     },
     view: function(ctrl, args) {
         var vm = ctrl.vm;
+        //vm.init();
         return m("table", {class:"table table-condensed table-striped table-hover"}, [
             // sorts() works with Hosts.list() because that is used by vm.list(), but since vm.list() is not a real array it currently is unable to sort
             // FIXME

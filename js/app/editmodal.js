@@ -80,10 +80,19 @@ EditModal.view = function (ctrl) {
                     }
 
                     if (editable.type === "select2") {
+                        var list = [];
+                        if (editable.name === "Groups") {
+                            list = Groups.list();
+                        }
+                        if (editable.name === "Hosts") {
+                            list = Hosts.list();
+                        }
                         form.push(m("div", { class: "panel panel-info" }, [
                             m("div", { class: "panel-heading" }, [m("h3", { class: "panel-title" }, editable.name)]),
                             m("div", [m("select", {id: editable.type+editable.object, multiple: "multiple" }, [
-                               vm[editable.object].map(function (el) {
+                                // this would be cleaner but no worky
+                               //vm[editable.object].map(function (el) {
+                               list.map(function (el) {
                                    return m("option", {
                                        value: el.d.id(),
                                        selected: vm[editable.method](el)

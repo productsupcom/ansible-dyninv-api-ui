@@ -4,6 +4,9 @@ var Group = function (data) {
     d.id = data ? m.prop(data["@id"]) : m.prop("");
     d.name = data ? m.prop(data.name) : m.prop("");
     d.enabled = data ? m.prop(data.enabled) : m.prop("");
+    d.hostsCount = function() {
+        return d.hostsArr().length;
+    };
     d.variables = data ? m.prop(data.variables) : m.prop({});
     if (Array.isArray(d.variables())) {
         d.variables({});
@@ -11,7 +14,7 @@ var Group = function (data) {
     d.hostsArr = data ? m.prop(data.hosts) : m.prop([]);
     d.hosts = function () {
         return Hosts.list().filter(function (el) {
-            return d.hostsArr().indexOf(el.d.id());
+            return d.hostsArr().indexOf(el.d.id()) !== -1;
         });
     };
 
@@ -32,6 +35,17 @@ var Group = function (data) {
             "editable": true,
             "object":"name",
             "type":"string"},
+        {"name":"Hosts",
+            "inplace": false,
+            "editable": true,
+            "object":"hosts",
+            "method":"inHost",
+            "type":"select2"},
+        {"name":"Hosts",
+            "inplace": false,
+            "editable": false,
+            "object":"hostsCount",
+            "type":"string"},
         {"name":"Variables",
             "inplace": false,
             "editable": true,
@@ -46,14 +60,17 @@ Group.prototype.toJSON = function () {
         "name": d.name(),
         "enabled": d.enabled(),
         "variables": d.variables(),
-        "hosts": d.hosts().map(function(host){
-            return host.d.id();
-        })
+        "hosts": d.hostsArr(),
+        //"hosts": d.hosts().map(function(host){
+        //    return host.d.id();
+        //})
     };
     console.log(obj);
     Object.keys(obj).map(function (property) {
         if (obj[property] === undefined || obj[property] === "") {
-            delete obj[property];
+            if (typeof property !== "boolean") {
+                delete obj[property];
+            }
         }
     });
     console.log(obj);
@@ -61,23 +78,29 @@ Group.prototype.toJSON = function () {
 };
 
 Group.update = function (group) {
+    if (Login.token() === null) {
+        m.route("/login");
+    }
     if (!(group instanceof Group)) {
         console.log("Argument needs to be of type Group.", group);
         return;
     }
     console.log(group);
     var url = uiConfig.restUrl + group.d.id();
-    m.request({
+    api.request({
         method: "PUT",
-        user: uiConfig.user,
-        password: uiConfig.password,
         url: url,
         data: group,
         type: Group
+    }).catch(function(e){
+        console.log(e.message);
     }).then(log).then(Groups.replace);
 };
 
 Group.post = function (group) {
+    if (Login.token() === null) {
+        m.route("/login");
+    }
     if (!(group instanceof Group)) {
         console.log("Argument needs to be of type Group.", group);
         return;
@@ -86,13 +109,13 @@ Group.post = function (group) {
     var base = uiConfig.restUrl;
     var endpoint = "/groups";
     var url = base + endpoint;
-    m.request({
+    api.request({
         method: "POST",
-        user: uiConfig.user,
-        password: uiConfig.password,
         url: url,
         data: group,
         type: Group
+    }).catch(function(e){
+        console.log(e.message);
     }).then(log).then(Groups.add);
 };
 
@@ -111,12 +134,16 @@ Group.vm = (function() {
     };
 
     vm.save = function (group) {
+        console.log(group);
+        console.log(group.d.hosts());
         if (jseditor.editor !== undefined) {
             group.d.variables(jseditor.editor.get());
         }
         if (group.d.id()) {
+            console.log("update", group);
             vm.update(group);
         } else {
+            console.log("create", group);
             vm.post(group);
         }
     };
@@ -127,11 +154,26 @@ Group.vm = (function() {
         Group.post(data);
     };
 
+    vm.inHost = function (host) {
+        if (vm.group.d.hostsArr().indexOf(host.d.id()) >= 0) {
+            return true;
+        }
+        return false;
+    };
+
     vm.edit = function (group, open) {
         open = typeof open !== "undefined" ? open : false;
         vm.group = group;
         if (open) {
             Group.vm.openModal("lg");
+        }
+    };
+
+    vm.addGroupToHost = function(group, host) {
+        console.log("addGroupToHost", group, host);
+        if (group.d.hostsArr().indexOf(host) === -1) {
+            console.log("adding host", host);
+            group.d.hostsArr().push(host);
         }
     };
 
@@ -149,10 +191,11 @@ Group.vm = (function() {
                 m.redraw(true);
                 // needs to be reimplemented for the group
                 vm.initJsonEditor();
-                //vm.initGroupSelect();
+                vm.initHostSelect();
             }
         }));
         vm.modalInstance.result.then(function () {
+            console.log(Group.vm.group);
             Group.vm.save(Group.vm.group);
         }, function () {
             console.log("Modal dismissed");
@@ -180,13 +223,35 @@ Group.vm = (function() {
                 }
                 jseditor.editor.set(vm.group.d[editable.object]());
             } else {
-                console.log('Mysterious forces have caused the editorContainer not to be available.');
+                console.log("Mysterious forces have caused the editorContainer not to be available.");
             }
         });
         m.endComputation();
         m.redraw();
     };
 
+    /* globals $ */
+    vm.initHostSelect = function () {
+        vm.group.columns.filter(function(el){
+            return el.type === "select2";
+        }).forEach(function(editable) {
+            var el = $("#"+editable.type+editable.object);
+            if (el.hasClass("select2-hidden-accessible")) {
+                // redraw to reflect the change, else it can sometimes show the old one
+                el.select2("destroy");
+                m.redraw();
+            }
+            el.select2({width: "830px"});
+            el.on("change", function () {
+                m.startComputation();
+                var hosts = el.select2("val");
+                // simply set the returned array as the new host list
+                Group.vm.group.d.hostsArr(hosts);
+                m.endComputation();
+                m.redraw();
+            });
+        });
+    };
     vm.enableButton = function (group) {
         if (group.d.enabled()) {
             return m("button", {
