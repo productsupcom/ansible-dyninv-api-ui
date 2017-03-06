@@ -50,7 +50,7 @@ var Host = function (data) {
             "editable": true,
             "object":"domain",
             "type":"string"},
-        {"name":"Host",
+        {"name":"FQDN",
             "inplace": true,
             "editable": true,
             "object":"fqdn",

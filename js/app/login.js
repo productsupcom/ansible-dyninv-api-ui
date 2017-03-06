@@ -23,9 +23,7 @@ Login.user = {
 Login.error = m.prop("");
 
 Login.auth = function() {
-    var base = uiConfig.restUrl;
-    var end = "/login_check";
-    var url = base + end;
+    var url = uiConfig.loginUrl;
     Login.error("");
     m.redraw();
 
