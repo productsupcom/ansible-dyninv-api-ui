@@ -137,7 +137,7 @@ Host.post = function (host) {
     }
     console.log(host);
     var base = uiConfig.restUrl;
-    var endpoint = "/hosts";
+    var endpoint = "/api/hosts";
     var url = base + endpoint;
     api.request({
         method: "POST",
