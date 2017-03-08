@@ -12,6 +12,8 @@ var Group = function (data) {
         d.variables({});
     }
     d.hostsArr = data ? m.prop(data.hosts) : m.prop([]);
+    d.childArr = data ? m.prop(data.childGroups) : m.prop([]);
+    d.parentArr = data ? m.prop(data.parentGroups) : m.prop([]);
     d.hosts = function () {
         return Hosts.list().filter(function (el) {
             return d.hostsArr().indexOf(el.d.id()) !== -1;
@@ -61,6 +63,8 @@ Group.prototype.toJSON = function () {
         "enabled": d.enabled(),
         "variables": d.variables(),
         "hosts": d.hostsArr(),
+        "childGroups": d.childArr(),
+        "parentGroups": d.parentArr(),
         //"hosts": d.hosts().map(function(host){
         //    return host.d.id();
         //})
@@ -107,7 +111,7 @@ Group.post = function (group) {
     }
     console.log(group);
     var base = uiConfig.restUrl;
-    var endpoint = "/groups";
+    var endpoint = "/api/groups";
     var url = base + endpoint;
     api.request({
         method: "POST",

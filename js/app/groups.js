@@ -58,7 +58,7 @@ Groups.getList = function (direction) {
     }
     direction = typeof direction !== "undefined" ? direction : false;
     var base = uiConfig.restUrl;
-    var end = "/groups";
+    var end = "/api/groups";
     if (Groups.api.total !== undefined && Groups.list().length === Groups.api.total) {
         return;
     }

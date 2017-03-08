@@ -99,7 +99,7 @@ Host.prototype.toJSON = function () {
         "variables": d.variables()
     };
     Object.keys(obj).map(function (property) {
-        if (obj[property] === undefined || obj[property] === "") {
+        if (obj[property] === undefined || obj[property] === "" || obj[property] === null) {
             if (typeof property !== "boolean") {
                 delete obj[property];
             }

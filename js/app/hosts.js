@@ -77,7 +77,7 @@ Hosts.getList = function (direction) {
     }
     direction = typeof direction !== "undefined" ? direction : false;
     var base = uiConfig.restUrl;
-    var end = "/hosts";
+    var end = "/api/hosts";
     if (Hosts.api.total !== undefined && Hosts.list().length === Hosts.api.total) {
         return;
     }
