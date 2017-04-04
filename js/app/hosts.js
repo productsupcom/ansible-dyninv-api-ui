@@ -59,11 +59,11 @@ Hosts.store = function (value, add) {
         Hosts.storage.set("hostsList", Hosts.list());
         return Hosts.list();
     }
-    if (!value && localStorage.getItem("hostsList") !== null) {
+    if (!value && Hosts.storage.get("hostsList") !== null) {
         if (Hosts.list().length == Hosts.storage.get("hostsList").length) {
             return true;
         }
-        console.log("Fetching Hosts from localStorage");
+        console.log("Fetching Hosts from mxStorage");
         Hosts.list([]);
         Hosts.storage.get("hostsList").forEach(function (element) {
             Hosts.list().push(new Host(element));

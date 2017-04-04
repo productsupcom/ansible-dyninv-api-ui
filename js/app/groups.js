@@ -40,11 +40,11 @@ Groups.store = function (value, add) {
         Groups.storage.set("groupsList", Groups.list());
         return Groups.list();
     }
-    if (!value && localStorage.getItem("groupsList") !== null) {
+    if (!value && Groups.storage.get("groupsList") !== null) {
         if (Groups.list().length == Groups.storage.get("groupsList").length) {
             return true;
         }
-        console.log("Fetching Groups from localStorage");
+        console.log("Fetching Groups from mxStorage");
         Groups.list([]);
         Groups.storage.get("groupsList").forEach(function (element) {
             Groups.list().push(new Group(element));
