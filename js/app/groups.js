@@ -94,10 +94,10 @@ Groups.getList = function (direction) {
         initialValue: [],
         unwrapSuccess: function (response) {
             Groups.api.initial = false;
-            Groups.api.next = response["hydra:nextPage"] || false;
-            Groups.api.previous = response["hydra:previousPage"] || false;
-            Groups.api.last = response["hydra:lastPage"];
-            Groups.api.first = response["hydra:firstPage"];
+            Groups.api.next = response["hydra:view"]["hydra:next"] || false;
+            Groups.api.previous = response["hydra:view"]["hydra:previous"] || false;
+            Groups.api.last = response["hydra:view"]["hydra:last"];
+            Groups.api.first = response["hydra:view"]["hydra:first"];
             Groups.api.total = response["hydra:totalItems"];
             console.log(Groups.api.total);
             console.log(Groups.list().length);

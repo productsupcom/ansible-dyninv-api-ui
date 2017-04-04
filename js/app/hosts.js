@@ -114,10 +114,10 @@ Hosts.getList = function (direction) {
         unwrapSuccess: function (response) {
             console.log(response);
             Hosts.api.initial = false;
-            Hosts.api.next = response["hydra:nextPage"] || false;
-            Hosts.api.previous = response["hydra:previousPage"] || false;
-            Hosts.api.last = response["hydra:lastPage"];
-            Hosts.api.first = response["hydra:firstPage"];
+            Hosts.api.next = response["hydra:view"]["hydra:next"] || false;
+            Hosts.api.previous = response["hydra:view"]["hydra:previous"] || false;
+            Hosts.api.last = response["hydra:view"]["hydra:last"];
+            Hosts.api.first = response["hydra:view"]["hydra:first"];
             Hosts.api.total = response["hydra:totalItems"];
             console.log(Hosts.api.total);
             console.log(Hosts.list().length);
