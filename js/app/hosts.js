@@ -49,7 +49,7 @@ Hosts.isPicked = function (host) {
         return el.d.id() === host.d.id();
     });
 };
-Hosts.storage = mx.storage("Hosts", mx.LOCAL_STORAGE);
+Hosts.storage = mx.storage("Hosts", mx.SESSION_STORAGE);
 Hosts.store = function (value, add) {
     add = typeof add !== "undefined" ? add : false;
     if (value instanceof Array) {

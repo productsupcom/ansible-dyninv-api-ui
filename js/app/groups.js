@@ -30,7 +30,7 @@ Groups.add = function (group) {
     m.redraw();
     return group;
 };
-Groups.storage = mx.storage("Groups", mx.LOCAL_STORAGE);
+Groups.storage = mx.storage("Groups", mx.SESSION_STORAGE);
 Groups.store = function (value, add) {
     add = typeof add !== "undefined" ? add : false;
     if (value instanceof Array) {
