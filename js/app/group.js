@@ -82,9 +82,6 @@ Group.prototype.toJSON = function () {
 };
 
 Group.update = function (group) {
-    if (Login.token() === null) {
-        m.route("/login");
-    }
     if (!(group instanceof Group)) {
         console.log("Argument needs to be of type Group.", group);
         return;
@@ -102,9 +99,6 @@ Group.update = function (group) {
 };
 
 Group.post = function (group) {
-    if (Login.token() === null) {
-        m.route("/login");
-    }
     if (!(group instanceof Group)) {
         console.log("Argument needs to be of type Group.", group);
         return;

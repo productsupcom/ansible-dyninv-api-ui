@@ -9,8 +9,24 @@ Login.vm = function () {
 
 Login.storage = mx.storage("Login", mx.SESSION_STORAGE);
 Login.token = function(token) {
+    console.log("Login.token function");
     if (token) {
         Login.storage.set("token", token);
+        Login.storage.set("token_time", new Date());
+    }
+
+    if ((new Date() - (new Date(Login.storage.get("token_time")) || new Date())) / (1000 * 60) >= 59) {
+        console.log("Token is nearly an hour old, delete it");
+        Login.storage.remove("token");
+        Login.storage.remove("token_time");
+        var href = window.location.href.split("/").reverse()[0];
+        if (m.route() !== "/login") {
+            console.log("redirecting to /login");
+            m.route("/login");
+            m.redraw();
+        }
+    } else {
+        console.log("Token is less then an hour old.");
     }
 
     return Login.storage.get("token");
@@ -43,6 +59,9 @@ Login.auth = function() {
         Login.user.email("");
         Login.user.password("");
         m.route("/hosts");
+        HostsController.vm.init();
+        GroupsController.vm.init();
+        m.redraw();
     }).catch(function(response) {
         Login.error(response.message);
         m.redraw();

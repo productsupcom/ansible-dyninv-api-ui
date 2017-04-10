@@ -72,9 +72,6 @@ Hosts.store = function (value, add) {
     }
 };
 Hosts.getList = function (direction) {
-    if (Login.token() === null) {
-        m.route("/login");
-    }
     direction = typeof direction !== "undefined" ? direction : false;
     var base = uiConfig.restUrl;
     var end = "/api/hosts";
@@ -345,13 +342,10 @@ Hosts.vm = (function () {
 Hosts.controller = function () {
     var ctrl = this;
     ctrl.vm = Hosts.vm;
-    if (Login.token()) {
-        ctrl.vm.init();
-    }
 };
 Hosts.view = function(ctrl) {
     return [
-        m.component(Overview, {type:"Host", vm:ctrl.vm, nameObject:new Host(), singular:Host})//, {vm:ctrl.vm})
+        m.component(Overview, {type:"Host", vm:ctrl.vm, nameObject:new Host(), singular:Host})
     ];
 };
 

@@ -200,8 +200,10 @@ function Page(page) {
 }
 
 var LoginPage = Login;
-var HostsPage = new Page(Hosts.view(new Hosts.controller()));
-var GroupsPage = new Page(Groups.view(new Groups.controller()));
+var HostsController = new Hosts.controller();
+var GroupsController = new Groups.controller();
+var HostsPage = new Page(Hosts.view(HostsController));
+var GroupsPage = new Page(Groups.view(GroupsController));
 
 m.route.mode = "search";
 /* globals document */
@@ -210,3 +212,11 @@ m.route(document.body, "/hosts", {
     "/hosts": HostsPage,
     "/groups": GroupsPage,
 });
+
+if (Login.token()) {
+    // if the token is present, init
+    console.log("token is present, init Hosts and Groups controllers");
+    HostsController.vm.init();
+    GroupsController.vm.init();
+    m.redraw();
+}

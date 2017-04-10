@@ -108,9 +108,6 @@ Host.prototype.toJSON = function () {
     return obj;
 };
 Host.update = function (host) {
-    if (Login.token() === null) {
-        m.route("/login");
-    }
     if (!(host instanceof Host)) {
         console.log("Argument needs to be of type Host.", host);
         return;
@@ -128,9 +125,6 @@ Host.update = function (host) {
     }).then(log).then(Hosts.replace);
 };
 Host.post = function (host) {
-    if (Login.token() === null) {
-        m.route("/login");
-    }
     if (!(host instanceof Host)) {
         console.log("Argument needs to be of type Host.", host);
         return;

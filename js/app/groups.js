@@ -41,7 +41,7 @@ Groups.store = function (value, add) {
         return Groups.list();
     }
     if (!value && Groups.storage.get("groupsList") !== null) {
-        if (Groups.list().length == Groups.storage.get("groupsList").length) {
+        if (Groups.list().length === Groups.storage.get("groupsList").length) {
             return true;
         }
         console.log("Fetching Groups from mxStorage");
@@ -53,9 +53,6 @@ Groups.store = function (value, add) {
     }
 };
 Groups.getList = function (direction) {
-    if (Login.token() === null) {
-        m.route("/login");
-    }
     direction = typeof direction !== "undefined" ? direction : false;
     var base = uiConfig.restUrl;
     var end = "/api/groups";
@@ -298,13 +295,10 @@ Groups.vm = (function () {
 Groups.controller = function () {
     var ctrl = this;
     ctrl.vm = Groups.vm;
-    if (Login.token()) {
-        ctrl.vm.init();
-    }
 };
 Groups.view = function(ctrl) {
     return [
-        m.component(Overview, {type:"Group", vm:ctrl.vm, nameObject:new Group(), singular:Group})//, {vm:ctrl.vm})
+        m.component(Overview, {type:"Group", vm:ctrl.vm, nameObject:new Group(), singular:Group})
     ];
 };
 
