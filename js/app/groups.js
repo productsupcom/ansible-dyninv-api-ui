@@ -33,11 +33,14 @@ Groups.add = function (group) {
 Groups.storage = mx.storage("Groups", mx.SESSION_STORAGE);
 Groups.store = function (value, add) {
     add = typeof add !== "undefined" ? add : false;
+    var date = new Date();
+    var datestamp = new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString();
     if (value instanceof Array) {
         if (!add) {
             Groups.list(Groups.list().concat(value));
         }
         Groups.storage.set("groupsList", Groups.list());
+        Groups.storage.set("groupsUpdated", datestamp);
         return Groups.list();
     }
     if (!value && Groups.storage.get("groupsList") !== null) {
@@ -49,6 +52,7 @@ Groups.store = function (value, add) {
         Groups.storage.get("groupsList").forEach(function (element) {
             Groups.list().push(new Group(element));
         });
+        Groups.storage.set("groupsUpdated", datestamp);
         return true;
     }
 };
@@ -56,7 +60,7 @@ Groups.getList = function (direction) {
     direction = typeof direction !== "undefined" ? direction : false;
     var base = uiConfig.restUrl;
     var end = "/api/groups";
-    if (Groups.api.total !== undefined && Groups.list().length === Groups.api.total) {
+    if (Groups.api.total !== undefined && Groups.list().length === Groups.api.total && direction !== "update") {
         return;
     }
     if (!direction) {
@@ -66,6 +70,10 @@ Groups.getList = function (direction) {
         }
     }
     var url = base + end;
+    if (direction === "update") {
+        url = base + end + "?updated[after]=" + Groups.storage.get("groupsUpdated");
+        console.log(url);
+    }
     if (direction === "next") {
         if (!Groups.api.next) {
             return;
@@ -91,13 +99,15 @@ Groups.getList = function (direction) {
         initialValue: [],
         unwrapSuccess: function (response) {
             Groups.api.initial = false;
-            if (response["hydra:view"] !== undefined) {
+            if (response["hydra:view"] !== undefined && direction !== "update") {
                 Groups.api.next = response["hydra:view"]["hydra:next"] || false;
                 Groups.api.previous = response["hydra:view"]["hydra:previous"] || false;
                 Groups.api.last = response["hydra:view"]["hydra:last"];
                 Groups.api.first = response["hydra:view"]["hydra:first"];
             }
-            Groups.api.total = response["hydra:totalItems"];
+            if (direction !== "update") {
+                Groups.api.total = response["hydra:totalItems"];
+            }
             console.log(Groups.api.total);
             console.log(Groups.list().length);
             return response["hydra:member"];
@@ -105,7 +115,18 @@ Groups.getList = function (direction) {
         type: Group
     }).catch(function(e){
         console.log(e.message);
-    }).then(log).then(Groups.store).then(m.redraw).then(function () {
+    }).then(log)
+    .then(function(val) {
+        if (direction !== "update") {
+            Groups.store(val);
+        } else {
+            val.forEach(function (group) {
+                Groups.replace(group);
+            });
+        }
+    })
+    .then(m.redraw)
+    .then(function () {
         // while debugging other stuff disable this
         Groups.getList("next");
     });
@@ -133,6 +154,9 @@ Groups.vm = (function () {
     var vm = {};
     vm.init = function () {
         Groups.getList();
+        window.setInterval(function() {
+            Groups.getList("update");
+        }, 30000);
     };
     vm.create = function () {
         Group.vm.create();

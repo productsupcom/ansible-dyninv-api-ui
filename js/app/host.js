@@ -88,15 +88,16 @@ Host.prototype.toJSON = function () {
     var d = this.d;
     var obj = {
         "@id": d.id(),
-        "created": d.created(),
         "domain": d.domain(),
         "enabled": d.enabled(),
         "fqdn": d.fqdn(),
         "hostname": d.hostname(),
-        "updated": d.updated(),
         "ip": d.ip(),
         "groups": d.groupsArr(),
         "variables": d.variables()
+        // these should not be set
+        //"created": d.created(),
+        //"updated": d.updated(),
     };
     Object.keys(obj).map(function (property) {
         if (obj[property] === undefined || obj[property] === "" || obj[property] === null) {
